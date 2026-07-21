@@ -1,191 +1,183 @@
-# Frostfall Launcher
+# SkyMP Launcher
 
-Desktop launcher for the Frostfall SkyMP roleplay server. Handles Discord authentication, client file installation, mod management via Vortex, and launching Skyrim through SKSE.
+A customizable Electron launcher template for SkyMP multiplayer servers. It
+handles server discovery, Discord authentication, SkyMP client files, optional
+Vortex integration, SKSE startup, and automatic launcher updates.
 
-Pre-built installers are available at **https://frostfall.online**.
+The repository runs with a neutral SkyMP identity by default. Operators should
+change one configuration file and replace the assets before publishing their
+own build.
 
----
+## Requirements
 
-## Stack
+- Node.js 22 or newer
+- A compatible launcher backend, such as
+  [Frostfall-Backend](https://github.com/F02K/Frostfall-Backend)
+- Windows for the supported Skyrim/Vortex gameplay path
 
-- **Electron 41** — main process (Node.js) + renderer (Chromium)
-- **electron-builder** — packaging; produces NSIS installer (Windows), AppImage/deb (Linux), DMG (macOS)
-- **electron-store** — persistent JSON config in AppData
-- **adm-zip** — ZIP extraction for client file bundles
-- **classic-level** — LevelDB reader for Vortex profile state
-- Vanilla JS/HTML/CSS — no frontend framework, no build step
-
----
-
-## Project structure
-
-```
-src/
-  main.js          Main process: window, IPC handlers, OAuth flow, install, launch
-  preload.js       Context-isolated bridge — exposes window.electronAPI to renderer
-  config.js        API_URL from env (defaults to https://api.frostfall.online)
-  vortex.js        Vortex detection (registry), profile reading (LevelDB), mod lookup
-  renderer/
-    index.html     UI shell: topbar, content grid, modals
-    renderer.js    Event listeners, API calls, settings, news/modlist rendering
-    styles.css     Dark theme, glass effects, custom fonts
-assets/            App icons (.ico, .icns, .png)
-```
-
----
-
-## Development
-
-```bash
+```powershell
 npm install
-npm start        # or npm run dev
+npm start
 ```
 
-Runs with `--dev` flag: DevTools open, loads `.env` from project root.
+Use `npm run dev` to load `.env`, open DevTools, and disable automatic launcher
+updates. `API_URL` remains available as a local override:
 
-Copy `.env.example` to `.env` and set `API_URL` if pointing at a local backend:
-
-```
+```env
 API_URL=http://localhost:4000
 ```
 
----
+## Customize a fork
 
-## Building
+Edit `launcher.config.json`:
 
-```bash
-npm run build:win    # Windows — NSIS installer (x64)
-npm run build:linux  # Linux — AppImage + .deb
-npm run build:mac    # macOS — DMG
-npm run build        # All platforms
-```
-
-Output goes to `dist/`.
-
----
-
-## How it works
-
-### Startup
-
-1. Main process creates a 1280×720 frameless window and loads `renderer/index.html`.
-2. Renderer fetches server status, news, mod list, and launcher version from the backend.
-3. Server status polls every 30 seconds.
-4. Cached server list and files version are read from electron-store for offline fallback.
-
-### Discord OAuth
-
-1. User clicks **Login with Discord**.
-2. Main process starts a temporary local HTTP server on a random port (`127.0.0.1` only).
-3. Calls `GET /auth/discord/url?redirect=http://127.0.0.1:<port>/callback` — backend returns the Discord authorization URL.
-4. Opens the URL in the system browser (`shell.openExternal`).
-5. Discord redirects to the local callback with an authorization code.
-6. Main process calls `GET /auth/discord/exchange?code=<code>` — backend exchanges the code for a Discord access token (client secret never leaves the backend).
-7. Calls `POST /auth/session` to get a stable `profileId` (offline) or `session` token (online mode).
-8. Credentials stored in electron-store: `discordUser`, `discordToken`, `gameProfileId`, `gameSession`.
-
-### Client file installation (direct)
-
-1. `GET /api/files/version` — compare with stored `filesVersion`.
-2. If outdated or required files missing: stream `GET /api/files/zip`, extract ZIP into the Skyrim directory.
-3. Write `Data/Platform/Plugins/skymp5-client-settings.txt` with server IP/port and auth data.
-4. Store new version tag so the next launch skips the download.
-
-Required files checked before launch:
-```
-Data/Platform/Plugins/skymp5-client.js
-Data/SKSE/Plugins/SkyrimPlatform.dll
-Data/SKSE/Plugins/MpClientPlugin.dll
-```
-
-### Vortex installation
-
-If Vortex integration is enabled:
-
-1. Fetch mod list from backend — find the entry with `collectionSlug`.
-2. Open `nxm://skyrimspecialedition/collections/<slug>/revisions/<id>` — Vortex auto-installs the Nexus collection.
-3. Download and extract backend files same as the direct path.
-4. Write client settings.
-
-### Launch
-
-1. Write client settings with current server IP/port and session data.
-2. If Vortex enabled: spawn `Vortex.exe --profile <id> --start-minimized`, wait 5 s for hardlink deployment.
-3. Spawn `skse64_loader.exe` from the Skyrim directory. SKSE loads SkyrimPlatform and the SkyMP client plugin, which reads the settings file and connects.
-
-### Client settings file format
-
-Offline mode:
 ```json
 {
-  "server-ip": "...",
-  "server-port": 7777,
-  "master": "",
-  "server-master-key": null,
-  "gameData": { "profileId": 12345 }
+  "app": {
+    "appId": "com.example.my-skymp-launcher",
+    "productName": "My Server Launcher",
+    "shortName": "My Server",
+    "description": "Launcher for My Server"
+  },
+  "backend": { "apiUrl": "https://api.example.com" },
+  "links": {
+    "website": "https://example.com",
+    "discord": "https://discord.gg/example"
+  },
+  "branding": {
+    "emblem": "M",
+    "tagline": "SkyMP Multiplayer",
+    "background": "assets/background.gif",
+    "icons": {
+      "windows": "assets/icon.ico",
+      "linux": "assets/icon.png",
+      "mac": "assets/icon.png"
+    }
+  },
+  "updates": {
+    "provider": "generic",
+    "url": "https://api.example.com/launcher-updates",
+    "checkIntervalMinutes": 240
+  }
 }
 ```
 
-Online mode:
+`appId` is the permanent identity of an installed application. Do not change it
+after releasing a fork, or users will receive a separate installation and a new
+settings directory. Forks should never reuse the default app ID.
+
+Replace `assets/background.gif`, `assets/icon.ico`, and `assets/icon.png` with
+your branding, keeping the configured paths valid. Empty website or Discord
+links are hidden automatically. Run `npm run validate:config` before building.
+
+## Launcher updates
+
+Installed NSIS and AppImage builds check at startup and every four hours. A new
+version downloads in the background, reports progress in the footer, and is
+installed either through **Restart to update** or when the launcher normally
+quits. Development builds and Linux DEB packages do not self-update.
+
+### Generic HTTPS/backend provider
+
+The default configuration reads updates from:
+
+```text
+https://api.frostfall.online/launcher-updates
+```
+
+Set `updates.provider` to `generic` and `updates.url` to the public directory
+that contains the generated installer/AppImage and metadata files. With the
+companion backend, publish a completed launcher `dist` directory using:
+
+```powershell
+npm run publish-launcher -- E:\path\to\Frostfall-Launcher\dist
+```
+
+Run this command in the backend repository. It validates `latest.yml`,
+`latest-linux.yml`, referenced files, and SHA-512 hashes before atomically
+replacing the public feed.
+
+### Public GitHub Releases provider
+
+For public repositories, configure:
+
 ```json
 {
-  "server-ip": "...",
-  "server-port": 7777,
-  "master": "https://api.frostfall.online",
-  "server-master-key": "<key>",
-  "gameData": { "session": "<token>" }
+  "updates": {
+    "provider": "github",
+    "owner": "your-account",
+    "repo": "your-launcher",
+    "checkIntervalMinutes": 240
+  }
 }
 ```
 
----
+The release validator rejects a GitHub update repository that differs from the
+repository running the build. Releases in private GitHub repositories are not
+publicly downloadable; use a generic public backend feed instead of embedding a
+GitHub token in the client. Set the provider to `disabled` when a build should
+not check for updates.
 
-## Persistent store keys
+## Build and release
 
-| Key | Type | Purpose |
-|-----|------|---------|
-| `skyrimPath` | string | Path to Skyrim Special Edition directory |
-| `filesVersion` | string | Version tag of installed client files |
-| `discordUser` | object | Discord user info for display |
-| `discordToken` | string | Discord access token |
-| `gameProfileId` | number | Stable player ID (offline mode) |
-| `gameSession` | string | Session token (online mode) |
-| `vortexPath` | string | Path to Vortex.exe |
-| `vortexProfileId` | string | Selected Vortex profile |
-| `vortexEnabled` | boolean | Use Vortex for installation |
-| `nexusApiKey` | string | Nexus Mods API key |
-| `cachedServers` | array | Last-known server list (offline fallback) |
+```powershell
+npm test
+npm run validate:config
+npm run build:win
+npm run build:linux
+```
 
----
+Windows produces an NSIS installer and `latest.yml`. Linux produces AppImage,
+DEB, and `latest-linux.yml`. The AppImage self-updates; DEB upgrades remain the
+responsibility of the package manager.
 
-## Backend API endpoints used
+Pushing a tag matching the package version creates a non-draft GitHub Release:
+
+```powershell
+npm version 1.2.0
+git push --follow-tags
+```
+
+The workflow validates the configuration, runs tests, builds both platforms,
+and attaches installers, blockmaps, and update metadata. Standard
+`electron-builder` signing environment variables can be provided through CI
+secrets for production code signing.
+
+## Backend contract
+
+The launcher expects these existing endpoints:
 
 | Method | Path | Purpose |
-|--------|------|---------|
+|---|---|---|
 | GET | `/api/servers` | Server list |
-| GET | `/api/status` | Online/offline + player count |
-| GET | `/api/serverinfo` | Name, max players, lock status, auth config |
+| GET | `/api/status` | Online state and player count |
+| GET | `/api/serverinfo` | Auth, lock, and server metadata |
 | GET | `/api/news` | News cards |
-| GET | `/api/modlist` | Mod list with Nexus links |
-| GET | `/api/metrics` | Server performance stats |
-| GET | `/api/files/version` | Current client files version tag |
-| GET | `/api/files/zip` | Client files bundle (ZIP download) |
-| GET | `/auth/discord/url` | Discord OAuth authorization URL |
-| GET | `/auth/discord/exchange` | Exchange OAuth code for token |
-| POST | `/auth/session` | Create/get game session |
-| GET | `/api/version` | Launcher update check |
+| GET | `/api/modlist` | Backend/Nexus mod list |
+| GET | `/api/metrics` | Server statistics |
+| GET | `/api/files/version` | SkyMP client-file version |
+| GET | `/api/files/zip` | SkyMP client-file bundle |
+| GET | `/api/users/login-discord/*` | Discord login flow |
+| GET | `/launcher-updates/*` | Generic launcher update feed |
 
----
+`/api/version` remains a compatibility endpoint for Launcher 1.1.1 and older.
+It is not used by the new updater.
 
-## Environment variables
+## Project structure
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `API_URL` | `https://api.frostfall.online` | Backend base URL |
+```text
+launcher.config.json       Project identity, branding, backend, updates
+electron-builder.config.js Packaging and update-provider configuration
+scripts/                   Configuration/release validation
+src/main.js                Electron window, IPC, auth, install, launch
+src/updater.js             Automatic updater state machine
+src/preload.js             Context-isolated renderer bridge
+src/vortex.js              Vortex detection and profile integration
+src/renderer/              HTML, CSS, and renderer behavior
+test/                      Node unit tests
+assets/                    Replaceable background and icons
+```
 
-In development, set via `.env`. In packaged builds, set as a system environment variable or leave default.
-
----
-
-## Server lock
-
-If the backend sets `locked: true`, the Play button is disabled for users whose Discord ID is not in `lockedAllowList`. Used during maintenance or testing periods.
+The launcher remains deliberately SkyMP-specific: required client paths, SKSE,
+Skyrim Special Edition, and Vortex behavior are shared template functionality,
+while project identity and distribution are configurable.

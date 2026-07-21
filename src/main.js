@@ -16,11 +16,13 @@ const Store  = require('electron-store')
 const AdmZip = require('adm-zip')
 const config = require('./config')
 const vortex = require('./vortex')
+const { LauncherUpdater } = require('./updater')
 
 const isDev = process.argv.includes('--dev')
+app.setName(config.app.productName)
 
 // ── Dev logger ────────────────────────────────────────────────────────────────
-const LOG_FILE = isDev ? path.join(require('os').tmpdir(), 'frostfall-install.log') : null
+const LOG_FILE = isDev ? path.join(os.tmpdir(), 'skymp-launcher.log') : null
 
 function log(...args) {
   const line = args.join(' ')
@@ -29,7 +31,7 @@ function log(...args) {
 }
 
 if (LOG_FILE) {
-  fs.writeFileSync(LOG_FILE, `=== frostfall install log ${new Date().toISOString()} ===\n`)
+  fs.writeFileSync(LOG_FILE, `=== SkyMP Launcher log ${new Date().toISOString()} ===\n`)
   console.log('[dev] logging to', LOG_FILE)
 }
 
@@ -58,6 +60,8 @@ function send(channel, ...args) {
   if (win && !win.isDestroyed()) win.webContents.send(channel, ...args)
 }
 
+const launcherUpdater = new LauncherUpdater({ app, config, send, log })
+
 // ── Active server helper ──────────────────────────────────────────────────────
 // Returns the currently selected game server from the cached API list,
 // or null if no servers have been fetched yet.
@@ -71,6 +75,7 @@ function activeServer() {
 // ── Window ────────────────────────────────────────────────────────────────────
 function createWindow() {
   win = new BrowserWindow({
+    title:     config.app.productName,
     width:     1280,
     height:    720,
     minWidth:  1024,
@@ -94,6 +99,7 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow()
+  launcherUpdater.start()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
@@ -110,6 +116,13 @@ ipcMain.on('window:maximize', () => {
   else win?.maximize()
 })
 ipcMain.on('window:close', () => win?.close())
+
+// Public, non-secret project identity used to hydrate the renderer.
+ipcMain.handle('app:getConfig', () => config.public)
+
+ipcMain.handle('updates:getState', () => launcherUpdater.getState())
+ipcMain.handle('updates:check', () => launcherUpdater.check())
+ipcMain.handle('updates:install', () => launcherUpdater.install())
 
 // ── Settings ──────────────────────────────────────────────────────────────────
 ipcMain.handle('settings:load', async () => {
@@ -279,16 +292,15 @@ ipcMain.handle('api:modlist', async () => {
   catch { return null }
 })
 
-// ── Launcher update check ─────────────────────────────────────────────────────
+// ── Legacy launcher update IPC compatibility ─────────────────────────────────
 ipcMain.handle('app:checkUpdate', async () => {
-  const current = app.getVersion()
-  try {
-    const data = await fetchJSON(`${config.apiUrl}/api/version`)
-    const latest    = data.version
-    const hasUpdate = compareVersions(latest, current) > 0
-    return { current, latest, hasUpdate, downloadUrl: data.downloadUrl || '' }
-  } catch {
-    return { current, latest: null, hasUpdate: false, downloadUrl: '' }
+  const state = await launcherUpdater.check()
+  return {
+    current: state.currentVersion,
+    latest: state.availableVersion,
+    hasUpdate: ['available', 'downloading', 'ready'].includes(state.status),
+    downloadUrl: config.links.website || '',
+    state,
   }
 })
 
@@ -478,7 +490,7 @@ async function runDirectInstall() {
   const srv = activeServer()
   if (!srv) return abort('No server selected — open Settings and choose a server.')
 
-  const tempZip = path.join(os.tmpdir(), 'frostfall-client.zip')
+  const tempZip = path.join(os.tmpdir(), 'skymp-client.zip')
 
   // Fetch serverinfo once so writeClientSettings knows offline vs online mode.
   let serverInfo = null
@@ -564,7 +576,7 @@ async function runVortexInstall() {
   const srv = activeServer()
   if (!srv) return abort('No server selected — open Settings and choose a server.')
 
-  const tempZip = path.join(os.tmpdir(), 'frostfall-client.zip')
+  const tempZip = path.join(os.tmpdir(), 'skymp-client.zip')
 
   // Fetch serverinfo once so writeClientSettings knows offline vs online mode.
   let serverInfo = null
@@ -802,7 +814,7 @@ function fetchNexusFileId(nexusId, apiKey) {
       path:     `/v1/games/skyrimspecialedition/mods/${nexusId}/files.json?category=main`,
       headers:  {
         apikey:           apiKey,
-        'User-Agent':     'Frostfall-Launcher/1.0.0',
+        'User-Agent':     `${config.app.shortName.replace(/\s+/g, '-')}/${app.getVersion()}`,
         accept:           'application/json',
       },
     }
@@ -859,14 +871,4 @@ function fetchJSON(url, headers = {}) {
     })
     req.end()
   })
-}
-
-function compareVersions(a, b) {
-  const pa = String(a).split('.').map(Number)
-  const pb = String(b).split('.').map(Number)
-  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const diff = (pa[i] || 0) - (pb[i] || 0)
-    if (diff !== 0) return diff
-  }
-  return 0
 }

@@ -4,14 +4,31 @@ document.getElementById('btn-maximize').addEventListener('click', () => window.e
 document.getElementById('btn-close').addEventListener('click',    () => window.electronAPI.close())
 
 // ── External nav links ────────────────────────────────────────────────────────
-const EXTERNAL_URLS = {
-  website: 'https://frostfall.online',   // e.g. 'https://frostfall.example.com'
-  discord: 'https://discord.gg/frostfallrp',   // e.g. 'https://discord.gg/...'
+let externalUrls = {}
+
+async function loadAppConfig() {
+  const config = await window.electronAPI.getAppConfig()
+  if (!config) return
+
+  document.title = config.app.productName
+  document.getElementById('launcher-name').textContent = config.app.shortName
+  document.getElementById('launcher-emblem').textContent = config.branding.emblem
+  document.getElementById('launcher-tagline').textContent = config.branding.tagline
+
+  if (config.branding.background) {
+    const backgroundUrl = new URL(`../../${config.branding.background}`, window.location.href)
+    document.getElementById('launcher-background').style.backgroundImage = `url("${backgroundUrl.href}")`
+  }
+
+  externalUrls = { ...config.links }
+  document.querySelectorAll('.topnav-link[data-href]').forEach(link => {
+    link.hidden = !externalUrls[link.dataset.href]
+  })
 }
 
 document.querySelectorAll('.topnav-link[data-href]').forEach(link => {
   link.addEventListener('click', () => {
-    const url = EXTERNAL_URLS[link.dataset.href]
+    const url = externalUrls[link.dataset.href]
     if (url) window.electronAPI.openExternal(url)
   })
 })
@@ -453,24 +470,47 @@ async function loadServerInfo() {
   strip.hidden = false
 }
 
-// ── Launcher update check ─────────────────────────────────────────────────────
+// ── Launcher updates ──────────────────────────────────────────────────────────
 const launcherVersionEl = document.getElementById('launcher-version')
+let latestUpdateState = null
 
-async function checkLauncherUpdate() {
-  const result = await window.electronAPI.checkUpdate()
-  if (!result) return
+function renderUpdateState(state) {
+  if (!state) return
+  latestUpdateState = state
+  launcherVersionEl.classList.remove('update-available', 'update-downloading', 'update-ready', 'update-error')
+  launcherVersionEl.title = state.message || ''
 
-  if (result.hasUpdate) {
-    launcherVersionEl.textContent = '⬆ UPDATE AVAILABLE'
+  if (state.status === 'checking') {
+    launcherVersionEl.textContent = 'CHECKING…'
+  } else if (state.status === 'available') {
+    launcherVersionEl.textContent = `UPDATE v${state.availableVersion || ''}`
     launcherVersionEl.classList.add('update-available')
-    launcherVersionEl.title = `v${result.latest} is available — click to download`
-    launcherVersionEl.addEventListener('click', () => {
-      if (result.downloadUrl) window.electronAPI.openExternal(result.downloadUrl)
-    })
+  } else if (state.status === 'downloading') {
+    launcherVersionEl.textContent = `UPDATE ${Math.round(state.percent || 0)}%`
+    launcherVersionEl.classList.add('update-downloading')
+  } else if (state.status === 'ready') {
+    launcherVersionEl.textContent = 'RESTART TO UPDATE'
+    launcherVersionEl.classList.add('update-ready')
+  } else if (state.status === 'error') {
+    launcherVersionEl.textContent = `v${state.currentVersion}`
+    launcherVersionEl.classList.add('update-error')
   } else {
-    launcherVersionEl.textContent = `v${result.current}`
-    launcherVersionEl.classList.remove('update-available')
+    launcherVersionEl.textContent = `v${state.currentVersion}`
   }
+}
+
+launcherVersionEl.addEventListener('click', async () => {
+  if (latestUpdateState?.canInstall) {
+    await window.electronAPI.installUpdate()
+  } else if (!['checking', 'available', 'downloading'].includes(latestUpdateState?.status)) {
+    renderUpdateState(await window.electronAPI.checkForUpdates())
+  }
+})
+
+window.electronAPI.onUpdateState(renderUpdateState)
+
+async function initializeUpdates() {
+  renderUpdateState(await window.electronAPI.getUpdateState())
 }
 
 // ── News ──────────────────────────────────────────────────────────────────────
@@ -478,8 +518,8 @@ const newsGrid = document.getElementById('news-grid')
 
 const FALLBACK_NEWS = [
   {
-    title: 'The Launcher Has Arrived',
-    body:  'The Frostfall launcher is now available.',
+    title: 'Welcome to SkyMP',
+    body:  'Configure this launcher for your SkyMP multiplayer server.',
     date:  'Apr 14, 2026',
     tag:   'UPDATE',
     image: null,
@@ -708,10 +748,15 @@ async function loadMetrics() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-loadSettings()
-checkServerStatus()
-checkLauncherUpdate()
-loadNews()
-loadServerInfo()
-loadModlist()
-setInterval(checkServerStatus, 30_000)
+async function initialize() {
+  await loadAppConfig()
+  await loadSettings()
+  await initializeUpdates()
+  checkServerStatus()
+  loadNews()
+  loadServerInfo()
+  loadModlist()
+  setInterval(checkServerStatus, 30_000)
+}
+
+initialize()

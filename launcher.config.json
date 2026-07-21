@@ -1,0 +1,31 @@
+{
+  "$schema": "./launcher.config.schema.json",
+  "app": {
+    "appId": "io.github.f02k.skymp-launcher",
+    "productName": "SkyMP Launcher",
+    "shortName": "SkyMP",
+    "description": "Launcher for SkyMP multiplayer servers"
+  },
+  "backend": {
+    "apiUrl": "https://api.frostfall.online"
+  },
+  "links": {
+    "website": "https://github.com/F02K/Frostfall-Launcher",
+    "discord": ""
+  },
+  "branding": {
+    "emblem": "S",
+    "tagline": "Multiplayer Server",
+    "background": "assets/background.gif",
+    "icons": {
+      "windows": "assets/icon.ico",
+      "linux": "assets/icon.png",
+      "mac": "assets/icon.png"
+    }
+  },
+  "updates": {
+    "provider": "generic",
+    "url": "https://api.frostfall.online/launcher-updates",
+    "checkIntervalMinutes": 240
+  }
+}

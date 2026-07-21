@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self'; img-src 'self' data: https:">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frostfall Launcher</title>
+  <title>SkyMP Launcher</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@700&family=Barlow+Condensed:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -12,17 +12,17 @@
 </head>
 <body>
 
-  <div class="bg"></div>
+  <div class="bg" id="launcher-background"></div>
 
   <div id="app">
 
     <!-- ── Top bar ──────────────────────────────────── -->
     <header class="topbar">
       <div class="topbar-logo">
-        <div class="logo-emblem">F</div>
+        <div class="logo-emblem" id="launcher-emblem">S</div>
         <div class="logo-text-block">
-          <span class="logo-name">Frostfall</span>
-          <span class="logo-tagline">Roleplay Server</span>
+          <span class="logo-name" id="launcher-name">SkyMP</span>
+          <span class="logo-tagline" id="launcher-tagline">Multiplayer Server</span>
         </div>
       </div>
 

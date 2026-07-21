@@ -616,6 +616,21 @@ html, body {
   animation: pulse-gold 2s ease-in-out infinite;
 }
 
+.info-value.update-downloading {
+  color: rgba(232, 224, 208, 0.9);
+}
+
+.info-value.update-ready {
+  color: var(--gold-bright);
+  cursor: pointer;
+  animation: pulse-gold 1.4s ease-in-out infinite;
+}
+
+.info-value.update-error {
+  color: rgba(210, 80, 70, 0.9);
+  cursor: pointer;
+}
+
 @keyframes pulse-gold {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.5; }
