@@ -17,7 +17,7 @@
     "build:mac": "npm run validate:config && electron-builder --config electron-builder.config.js --mac"
   },
   "dependencies": {
-    "adm-zip":        "^0.5.10",
+    "adm-zip":        "^0.6.0",
     "classic-level":  "^1.4.1",
     "dotenv":         "^16.4.5",
     "electron-store": "^8.2.0",
