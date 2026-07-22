@@ -7,7 +7,8 @@
     "description": "Launcher for SkyMP multiplayer servers"
   },
   "backend": {
-    "apiUrl": "https://api.frostfall.online"
+    "apiUrl": "https://api.frostfall.online",
+    "apiBasePath": "/api/v2"
   },
   "links": {
     "website": "https://github.com/F02K/Frostfall-Launcher",

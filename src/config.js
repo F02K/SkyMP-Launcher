@@ -15,6 +15,7 @@ const config = {
   backend: {
     ...rawConfig.backend,
     apiUrl: String(process.env.API_URL || rawConfig.backend.apiUrl).replace(/\/$/, ''),
+    apiBasePath: String(rawConfig.backend.apiBasePath || '/api/v2').replace(/\/$/, ''),
   },
 }
 

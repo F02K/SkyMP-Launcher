@@ -145,19 +145,19 @@ secrets for production code signing.
 
 ## Backend contract
 
-The launcher expects these existing endpoints:
+The launcher uses a central API client rooted at the configurable `backend.apiBasePath` (default `/api/v2`):
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/api/servers` | Server list |
-| GET | `/api/status` | Online state and player count |
-| GET | `/api/serverinfo` | Auth, lock, and server metadata |
-| GET | `/api/news` | News cards |
-| GET | `/api/modlist` | Backend/Nexus mod list |
-| GET | `/api/metrics` | Server statistics |
-| GET | `/api/files/version` | SkyMP client-file version |
-| GET | `/api/files/zip` | SkyMP client-file bundle |
-| GET | `/api/users/login-discord/*` | Discord login flow |
+| GET | `/api/v2/launcher/servers` | Server list |
+| GET | `/api/v2/launcher/status` | Online state and player count |
+| GET | `/api/v2/launcher/servers/default` | Auth, lock, and server metadata |
+| GET | `/api/v2/launcher/news` | News cards |
+| GET | `/api/v2/launcher/mods` | Backend/Nexus mod list |
+| GET | `/api/v2/launcher/metrics` | Server statistics |
+| GET | `/api/v2/launcher/client/version` | SkyMP client-file version |
+| GET | `/api/v2/launcher/client/download` | SkyMP client-file bundle |
+| GET | `/api/v2/auth/discord/*` | Discord login flow |
 | GET | `/launcher-updates/*` | Generic launcher update feed |
 
 `/api/version` remains a compatibility endpoint for Launcher 1.1.1 and older.

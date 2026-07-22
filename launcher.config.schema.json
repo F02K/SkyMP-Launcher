@@ -22,7 +22,10 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["apiUrl"],
-      "properties": { "apiUrl": { "type": "string", "format": "uri" } }
+      "properties": {
+        "apiUrl": { "type": "string", "format": "uri" },
+        "apiBasePath": { "type": "string", "pattern": "^/[^?#]*$" }
+      }
     },
     "links": {
       "type": "object",

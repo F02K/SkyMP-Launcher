@@ -75,7 +75,7 @@ let discordUser         = null
 let discordAuthRequired = false
 let serverLocked        = false
 // Whether the current user is allowed to join (session-aware: set after login
-// by re-fetching /api/serverinfo with X-Session).  Defaults true so unauthed
+// by re-fetching the selected API v2 server with X-Session). Defaults true so unauthed
 // users are not blocked before they have a chance to log in.
 let serverAllowed       = true
 
