@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Public launcher identity and branding (never contains secrets)
+  getAppConfig: () => ipcRenderer.invoke('app:getConfig'),
+
   // Window controls
   minimize: () => ipcRenderer.send('window:minimize'),
   maximize: () => ipcRenderer.send('window:maximize'),
@@ -26,8 +29,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   discordLogout:  () => ipcRenderer.invoke('discord:logout'),
   discordGetUser: () => ipcRenderer.invoke('discord:getUser'),
 
-  // Launcher update check
+  // Launcher updates (checkUpdate is retained for older renderer code)
   checkUpdate: () => ipcRenderer.invoke('app:checkUpdate'),
+  getUpdateState: () => ipcRenderer.invoke('updates:getState'),
+  checkForUpdates: () => ipcRenderer.invoke('updates:check'),
+  installUpdate: () => ipcRenderer.invoke('updates:install'),
+  onUpdateState: (cb) => {
+    const listener = (_e, state) => cb(state)
+    ipcRenderer.on('updates:state', listener)
+    return () => ipcRenderer.removeListener('updates:state', listener)
+  },
 
   // Open external URL in default browser (http/https only)
   openExternal: (url) => ipcRenderer.send('open:external', url),

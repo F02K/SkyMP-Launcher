@@ -1,12 +1,31 @@
-/**
- * Launcher configuration — developer-only.
- *
- * apiUrl  – Base URL of the Frostfall backend.
- *           Overridden by the API_URL environment variable (set in .env for
- *           local dev, or as a real env var in a packaged/CI build).
- *           The available game servers are fetched from GET /api/servers
- *           at runtime so they never need a launcher rebuild to update.
- */
-module.exports = {
-  apiUrl: process.env.API_URL || 'https://api.frostfall.online',
+'use strict'
+
+const path = require('path')
+const rawConfig = require('../launcher.config.json')
+const { validateConfig } = require('./config-validation')
+
+const projectRoot = path.join(__dirname, '..')
+const errors = validateConfig(rawConfig, { projectRoot })
+if (errors.length > 0) {
+  throw new Error(`Invalid launcher.config.json:\n- ${errors.join('\n- ')}`)
 }
+
+const config = {
+  ...rawConfig,
+  backend: {
+    ...rawConfig.backend,
+    apiUrl: String(process.env.API_URL || rawConfig.backend.apiUrl).replace(/\/$/, ''),
+    apiBasePath: String(rawConfig.backend.apiBasePath || '/api/v2').replace(/\/$/, ''),
+  },
+}
+
+config.apiUrl = config.backend.apiUrl
+const { icons: _privateBuildIcons, ...publicBranding } = config.branding
+config.public = Object.freeze({
+  app: Object.freeze({ ...config.app }),
+  links: Object.freeze({ ...config.links }),
+  branding: Object.freeze(publicBranding),
+  updates: Object.freeze({ provider: config.updates.provider }),
+})
+
+module.exports = Object.freeze(config)

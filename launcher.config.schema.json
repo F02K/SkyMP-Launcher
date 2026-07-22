@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/F02K/Frostfall-Launcher/launcher.config.schema.json",
+  "title": "SkyMP Launcher configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "app",
+    "backend",
+    "links",
+    "branding",
+    "updates",
+    "security",
+    "behavior"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "app": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["appId", "productName", "shortName", "description"],
+      "properties": {
+        "appId": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z0-9_-]+)+$"
+        },
+        "productName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "shortName": { "type": "string", "minLength": 1, "maxLength": 30 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 160 }
+      }
+    },
+    "backend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["apiUrl"],
+      "properties": {
+        "apiUrl": { "type": "string", "format": "uri" },
+        "apiBasePath": { "type": "string", "pattern": "^/[^?#]*$" }
+      }
+    },
+    "links": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["website", "discord", "news"],
+      "properties": {
+        "website": { "type": "string" },
+        "discord": { "type": "string" },
+        "news": { "type": "string" }
+      }
+    },
+    "branding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["emblem", "tagline", "background", "icons"],
+      "properties": {
+        "emblem": { "type": "string", "minLength": 1, "maxLength": 3 },
+        "tagline": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "background": { "type": "string", "pattern": "^assets/" },
+        "icons": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["windows", "linux", "mac"],
+          "properties": {
+            "windows": { "type": "string", "pattern": "^assets/" },
+            "linux": { "type": "string", "pattern": "^assets/" },
+            "mac": { "type": "string", "pattern": "^assets/" }
+          }
+        }
+      }
+    },
+    "updates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "checkIntervalMinutes"],
+      "properties": {
+        "provider": { "enum": ["generic", "github", "disabled"] },
+        "url": { "type": "string" },
+        "owner": { "type": "string" },
+        "repo": { "type": "string" },
+        "checkIntervalMinutes": {
+          "type": "integer",
+          "minimum": 15,
+          "maximum": 10080
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clientManifestPublicKey", "externalHosts"],
+      "properties": {
+        "clientManifestPublicKey": { "type": "string", "minLength": 80 },
+        "externalHosts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "behavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defaultLocale", "maxClientPackageBytes"],
+      "properties": {
+        "defaultLocale": { "enum": ["en", "de"] },
+        "maxClientPackageBytes": {
+          "type": "integer",
+          "minimum": 1048576,
+          "maximum": 4294967296
+        }
+      }
+    }
+  }
+}
