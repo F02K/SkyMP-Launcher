@@ -54,7 +54,7 @@ function validateConfig(config, options = {}) {
     errors.push('backend.apiUrl must use HTTPS for release builds')
   }
 
-  for (const field of ['website', 'discord']) {
+  for (const field of ['website', 'discord', 'news']) {
     const value = config.links?.[field]
     if (typeof value !== 'string' || (value && !isWebUrl(value))) {
       errors.push(`links.${field} must be empty or an http(s) URL`)
@@ -93,6 +93,21 @@ function validateConfig(config, options = {}) {
   const interval = config.updates?.checkIntervalMinutes
   if (!Number.isInteger(interval) || interval < 15 || interval > 10080) {
     errors.push('updates.checkIntervalMinutes must be an integer from 15 to 10080')
+  }
+
+  const publicKey = config.security?.clientManifestPublicKey || ''
+  if (!/^-----BEGIN PUBLIC KEY-----[\s\S]+-----END PUBLIC KEY-----$/.test(publicKey)) {
+    errors.push('security.clientManifestPublicKey must be an Ed25519 PEM public key')
+  }
+  if (!Array.isArray(config.security?.externalHosts) || config.security.externalHosts.some(host => typeof host !== 'string' || !host.trim())) {
+    errors.push('security.externalHosts must be an array of host names')
+  }
+  if (!['en', 'de'].includes(config.behavior?.defaultLocale)) {
+    errors.push('behavior.defaultLocale must be en or de')
+  }
+  const maxPackageBytes = config.behavior?.maxClientPackageBytes
+  if (!Number.isInteger(maxPackageBytes) || maxPackageBytes < 1048576 || maxPackageBytes > 4294967296) {
+    errors.push('behavior.maxClientPackageBytes must be between 1 MiB and 4 GiB')
   }
 
   return errors

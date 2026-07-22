@@ -12,7 +12,8 @@
   },
   "links": {
     "website": "https://github.com/F02K/Frostfall-Launcher",
-    "discord": ""
+    "discord": "",
+    "news": ""
   },
   "branding": {
     "emblem": "S",
@@ -28,5 +29,13 @@
     "provider": "generic",
     "url": "https://api.frostfall.online/launcher-updates",
     "checkIntervalMinutes": 240
+  },
+  "security": {
+    "clientManifestPublicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA3mOvzuFgf9zc9lRARgEMILfLuxfYuxGwbXFxSSon5q8=\n-----END PUBLIC KEY-----",
+    "externalHosts": ["github.com", "www.nexusmods.com", "discord.com"]
+  },
+  "behavior": {
+    "defaultLocale": "en",
+    "maxClientPackageBytes": 2147483648
   }
 }

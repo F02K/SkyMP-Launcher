@@ -4,7 +4,15 @@
   "title": "SkyMP Launcher configuration",
   "type": "object",
   "additionalProperties": false,
-  "required": ["app", "backend", "links", "branding", "updates"],
+  "required": [
+    "app",
+    "backend",
+    "links",
+    "branding",
+    "updates",
+    "security",
+    "behavior"
+  ],
   "properties": {
     "$schema": { "type": "string" },
     "app": {
@@ -12,7 +20,10 @@
       "additionalProperties": false,
       "required": ["appId", "productName", "shortName", "description"],
       "properties": {
-        "appId": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z0-9_-]+)+$" },
+        "appId": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9]*(\\.[A-Za-z0-9_-]+)+$"
+        },
         "productName": { "type": "string", "minLength": 1, "maxLength": 80 },
         "shortName": { "type": "string", "minLength": 1, "maxLength": 30 },
         "description": { "type": "string", "minLength": 1, "maxLength": 160 }
@@ -30,10 +41,11 @@
     "links": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["website", "discord"],
+      "required": ["website", "discord", "news"],
       "properties": {
         "website": { "type": "string" },
-        "discord": { "type": "string" }
+        "discord": { "type": "string" },
+        "news": { "type": "string" }
       }
     },
     "branding": {
@@ -65,7 +77,37 @@
         "url": { "type": "string" },
         "owner": { "type": "string" },
         "repo": { "type": "string" },
-        "checkIntervalMinutes": { "type": "integer", "minimum": 15, "maximum": 10080 }
+        "checkIntervalMinutes": {
+          "type": "integer",
+          "minimum": 15,
+          "maximum": 10080
+        }
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clientManifestPublicKey", "externalHosts"],
+      "properties": {
+        "clientManifestPublicKey": { "type": "string", "minLength": 80 },
+        "externalHosts": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "behavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["defaultLocale", "maxClientPackageBytes"],
+      "properties": {
+        "defaultLocale": { "enum": ["en", "de"] },
+        "maxClientPackageBytes": {
+          "type": "integer",
+          "minimum": 1048576,
+          "maximum": 4294967296
+        }
       }
     }
   }

@@ -1,8 +1,13 @@
-# SkyMP Launcher
+# SkyMP Launcher 2.0
 
 A customizable Electron launcher template for SkyMP multiplayer servers. It
 handles server discovery, Discord authentication, SkyMP client files, optional
 Vortex integration, SKSE startup, and automatic launcher updates.
+
+Version 2.0 adds signed client manifests, resumable transactional repairs,
+server-scoped dashboards, encrypted credentials, first-run onboarding,
+English/German UI, keyboard accessibility, local diagnostics, and a
+TypeScript/esbuild application architecture.
 
 The repository runs with a neutral SkyMP identity by default. Operators should
 change one configuration file and replace the assets before publishing their
@@ -42,7 +47,8 @@ Edit `launcher.config.json`:
   "backend": { "apiUrl": "https://api.example.com" },
   "links": {
     "website": "https://example.com",
-    "discord": "https://discord.gg/example"
+    "discord": "https://discord.gg/example",
+    "news": "https://example.com/news"
   },
   "branding": {
     "emblem": "M",
@@ -58,6 +64,14 @@ Edit `launcher.config.json`:
     "provider": "generic",
     "url": "https://api.example.com/launcher-updates",
     "checkIntervalMinutes": 240
+  },
+  "security": {
+    "clientManifestPublicKey": "-----BEGIN PUBLIC KEY-----\\n...\\n-----END PUBLIC KEY-----",
+    "externalHosts": ["example.com", "www.nexusmods.com"]
+  },
+  "behavior": {
+    "defaultLocale": "en",
+    "maxClientPackageBytes": 2147483648
   }
 }
 ```
@@ -69,6 +83,11 @@ settings directory. Forks should never reuse the default app ID.
 Replace `assets/background.gif`, `assets/icon.ico`, and `assets/icon.png` with
 your branding, keeping the configured paths valid. Empty website or Discord
 links are hidden automatically. Run `npm run validate:config` before building.
+
+Replace the example manifest key with the public half of the operator's
+Ed25519 release key. Keep the private key only in the backend release
+environment. See [`docs/backend-launcher-v2.md`](docs/backend-launcher-v2.md)
+for the complete backend contract.
 
 ## Launcher updates
 
@@ -122,6 +141,9 @@ not check for updates.
 
 ```powershell
 npm test
+npm run test:e2e
+npm run typecheck
+npm run lint
 npm run validate:config
 npm run build:win
 npm run build:linux
@@ -150,13 +172,13 @@ The launcher uses a central API client rooted at the configurable `backend.apiBa
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/api/v2/launcher/servers` | Server list |
-| GET | `/api/v2/launcher/status` | Online state and player count |
-| GET | `/api/v2/launcher/servers/default` | Auth, lock, and server metadata |
-| GET | `/api/v2/launcher/news` | News cards |
-| GET | `/api/v2/launcher/mods` | Backend/Nexus mod list |
-| GET | `/api/v2/launcher/metrics` | Server statistics |
-| GET | `/api/v2/launcher/client/version` | SkyMP client-file version |
-| GET | `/api/v2/launcher/client/download` | SkyMP client-file bundle |
+| GET | `/api/v2/launcher/servers/:key/status` | Online state and player count |
+| GET | `/api/v2/launcher/servers/:key` | Auth, lock, and server metadata |
+| GET | `/api/v2/launcher/servers/:key/news` | News cards |
+| GET | `/api/v2/launcher/servers/:key/mods` | Backend/Nexus mod list |
+| GET | `/api/v2/launcher/servers/:key/metrics` | Server statistics |
+| GET | `/api/v2/launcher/servers/:key/client/manifest` | Signed client manifest |
+| GET | `/api/v2/launcher/servers/:key/client/download` | Resumable client bundle |
 | GET | `/api/v2/auth/discord/*` | Discord login flow |
 | GET | `/launcher-updates/*` | Generic launcher update feed |
 
@@ -168,13 +190,14 @@ It is not used by the new updater.
 ```text
 launcher.config.json       Project identity, branding, backend, updates
 electron-builder.config.js Packaging and update-provider configuration
-scripts/                   Configuration/release validation
-src/main.js                Electron window, IPC, auth, install, launch
-src/updater.js             Automatic updater state machine
-src/preload.js             Context-isolated renderer bridge
+scripts/                   Build and configuration validation
+src/app/                   Active Launcher 2 TypeScript application
 src/vortex.js              Vortex detection and profile integration
-src/renderer/              HTML, CSS, and renderer behavior
-test/                      Node unit tests
+src/renderer/              HTML and CSS presentation
+test/app/                  Launcher application unit tests
+test/*.test.js             Legacy compatibility contract tests
+e2e/                       Playwright Electron and accessibility tests
+docs/                      Backend contract documentation
 assets/                    Replaceable background and icons
 ```
 

@@ -13,7 +13,8 @@ module.exports = {
   electronUpdaterCompatibility: '>=2.16',
   directories: { output: 'dist' },
   files: [
-    'src/**/*',
+    'app-dist/**/*',
+    'src/vortex.js',
     'assets/**/*',
     'launcher.config.json',
     'package.json',
