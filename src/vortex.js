@@ -5,7 +5,7 @@
  *
  * Responsibilities:
  *  - Detect the Vortex installation and data directory.
- *  - Manage a dedicated "frostfall-client" mod in Vortex's staging area.
+ *  - Manage a dedicated SkyMP client mod in Vortex's staging area.
  *  - Keep the selected profile's modlist.txt up to date.
  *  - Deploy staged files to the Skyrim directory via hardlinks (or copy as fallback).
  */
@@ -113,7 +113,7 @@ function findVortexExe() {
 
 /**
  * List profiles from the Vortex filesystem (directory scan only).
- * Names come from a .frostfall marker file if previously tagged, otherwise
+ * Names come from a SkyMP Launcher marker (or the legacy .frostfall marker), otherwise
  * the raw profile ID is used.  For real Vortex names, call readProfilesFromState().
  *
  * @returns {{ id: string, name: string }[]}
@@ -126,12 +126,15 @@ function listProfiles() {
     .filter(e => e.isDirectory())
     .map(e => {
       let name = e.name
-      try {
-        const marker = JSON.parse(
-          fs.readFileSync(path.join(root, e.name, '.frostfall'), 'utf8')
-        )
-        if (marker.profileName) name = marker.profileName
-      } catch { /* marker absent – use the raw ID */ }
+      for (const markerName of ['.skymp-launcher', '.frostfall']) {
+        try {
+          const marker = JSON.parse(
+            fs.readFileSync(path.join(root, e.name, markerName), 'utf8')
+          )
+          if (marker.profileName) name = marker.profileName
+          break
+        } catch { /* marker absent – try the legacy marker or raw ID */ }
+      }
       return { id: e.name, name }
     })
 }
@@ -224,14 +227,14 @@ async function readProfilesFromState() {
 }
 
 /**
- * Write a .frostfall marker to the profile directory so we can recall the
+ * Write a neutral marker to the profile directory so we can recall the
  * human-readable name on subsequent launches (Vortex stores names in LevelDB).
  */
 function tagProfile(profileId, profileName) {
   const dir = getProfileDir(profileId)
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
   fs.writeFileSync(
-    path.join(dir, '.frostfall'),
+    path.join(dir, '.skymp-launcher'),
     JSON.stringify({ profileName, tagged: new Date().toISOString() })
   )
 }

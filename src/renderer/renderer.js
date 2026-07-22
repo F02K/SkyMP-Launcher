@@ -4,14 +4,31 @@ document.getElementById('btn-maximize').addEventListener('click', () => window.e
 document.getElementById('btn-close').addEventListener('click',    () => window.electronAPI.close())
 
 // ── External nav links ────────────────────────────────────────────────────────
-const EXTERNAL_URLS = {
-  website: 'https://frostfall.online',   // e.g. 'https://frostfall.example.com'
-  discord: 'https://discord.gg/4KHMqUUKNT',   // e.g. 'https://discord.gg/...'
+let externalUrls = {}
+
+async function loadAppConfig() {
+  const config = await window.electronAPI.getAppConfig()
+  if (!config) return
+
+  document.title = config.app.productName
+  document.getElementById('launcher-name').textContent = config.app.shortName
+  document.getElementById('launcher-emblem').textContent = config.branding.emblem
+  document.getElementById('launcher-tagline').textContent = config.branding.tagline
+
+  if (config.branding.background) {
+    const backgroundUrl = new URL(`../../${config.branding.background}`, window.location.href)
+    document.getElementById('launcher-background').style.backgroundImage = `url("${backgroundUrl.href}")`
+  }
+
+  externalUrls = { ...config.links }
+  document.querySelectorAll('.topnav-link[data-href]').forEach(link => {
+    link.hidden = !externalUrls[link.dataset.href]
+  })
 }
 
 document.querySelectorAll('.topnav-link[data-href]').forEach(link => {
   link.addEventListener('click', () => {
-    const url = EXTERNAL_URLS[link.dataset.href]
+    const url = externalUrls[link.dataset.href]
     if (url) window.electronAPI.openExternal(url)
   })
 })
@@ -49,7 +66,6 @@ footerServerSelect.addEventListener('change', () => {
 
 // ── Vortex fields ─────────────────────────────────────────────────────────────
 const fieldVortexPath    = document.getElementById('setting-vortex-path')
-const fieldVortexProfile = document.getElementById('setting-vortex-profile')
 const fieldVortexEnabled = document.getElementById('setting-vortex-enabled')
 const vortexStatusDot    = document.getElementById('vortex-status-dot')
 const vortexStatusText   = document.getElementById('vortex-status-text')
@@ -59,7 +75,7 @@ let discordUser         = null
 let discordAuthRequired = false
 let serverLocked        = false
 // Whether the current user is allowed to join (session-aware: set after login
-// by re-fetching /api/serverinfo with X-Session).  Defaults true so unauthed
+// by re-fetching the selected API v2 server with X-Session). Defaults true so unauthed
 // users are not blocked before they have a chance to log in.
 let serverAllowed       = true
 
@@ -120,7 +136,6 @@ async function loadSettings() {
   // Restore Vortex settings
   fieldVortexPath.value      = s.vortexPath || ''
   fieldVortexEnabled.checked = !!s.vortexEnabled
-  await refreshVortexProfiles(s.vortexProfileId || '')
   updateVortexStatus()
 
   return s
@@ -199,21 +214,10 @@ function renderTopbarDiscord() {
 renderTopbarDiscord()
 
 document.getElementById('btn-save').addEventListener('click', async () => {
-  const profileId = fieldVortexProfile.value.trim()
-
   const data = {
-    skyrimPath:      fieldSkyrimPath.value.trim(),
-    vortexPath:      fieldVortexPath.value.trim(),
-    vortexProfileId: profileId,
-    vortexEnabled:   fieldVortexEnabled.checked,
-  }
-
-  // Tag the profile with its display name so we can show it on future loads
-  if (profileId) {
-    const selectedOption = fieldVortexProfile.querySelector(`option[value="${profileId}"]`)
-    if (selectedOption) {
-      await window.electronAPI.vortexTagProfile(profileId, selectedOption.textContent)
-    }
+    skyrimPath:    fieldSkyrimPath.value.trim(),
+    vortexPath:    fieldVortexPath.value.trim(),
+    vortexEnabled: fieldVortexEnabled.checked,
   }
 
   await window.electronAPI.saveSettings(data)
@@ -232,56 +236,19 @@ document.getElementById('btn-browse').addEventListener('click', async () => {
 
 // ── Vortex UI ─────────────────────────────────────────────────────────────────
 
-const FROSTFALL_PROFILE_NAME = 'frostfall server collection'
-
-async function refreshVortexProfiles(selectId) {
-  const allProfiles = await window.electronAPI.vortexListProfiles()
-
-  // Only show profiles belonging to the Frostfall Server Collection
-  const profiles = allProfiles.filter(p =>
-    p.name.toLowerCase().includes(FROSTFALL_PROFILE_NAME)
-  )
-
-  // Preserve current selection if no explicit id given
-  const currentVal = selectId !== undefined ? selectId : fieldVortexProfile.value
-
-  fieldVortexProfile.innerHTML = profiles.length === 0
-    ? '<option value="">— no Frostfall Server Collection profile found —</option>'
-    : '<option value="">— select profile —</option>'
-
-  profiles.forEach(p => {
-    const opt = document.createElement('option')
-    opt.value       = p.id
-    opt.textContent = p.name !== p.id ? p.name : `Profile ${p.id.slice(0, 8)}…`
-    opt.selected    = p.id === currentVal
-    fieldVortexProfile.appendChild(opt)
-  })
-
-  // Auto-select if there is exactly one matching profile and none is saved yet
-  if (profiles.length === 1 && !currentVal) {
-    fieldVortexProfile.value = profiles[0].id
-  }
-}
-
 function updateVortexStatus() {
-  const hasExe     = fieldVortexPath.value.trim().length > 0
-  const hasProfile = fieldVortexProfile.value.trim().length > 0
-  const enabled    = fieldVortexEnabled.checked
+  const hasExe  = fieldVortexPath.value.trim().length > 0
+  const enabled = fieldVortexEnabled.checked
 
   if (!hasExe) {
-    vortexStatusDot.className  = 'vortex-status-dot'
+    vortexStatusDot.className    = 'vortex-status-dot'
     vortexStatusText.textContent = 'Vortex not configured'
-  } else if (!hasProfile) {
-    vortexStatusDot.className  = 'vortex-status-dot dot-warn'
-    vortexStatusText.textContent = 'Vortex found — no profile selected'
   } else if (!enabled) {
-    vortexStatusDot.className  = 'vortex-status-dot dot-warn'
+    vortexStatusDot.className    = 'vortex-status-dot dot-warn'
     vortexStatusText.textContent = 'Vortex configured — integration disabled'
   } else {
-    const selectedOpt = fieldVortexProfile.querySelector('option:checked')
-    const profileName = selectedOpt?.textContent || fieldVortexProfile.value
-    vortexStatusDot.className  = 'vortex-status-dot dot-ok'
-    vortexStatusText.textContent = `Active — profile: ${profileName}`
+    vortexStatusDot.className    = 'vortex-status-dot dot-ok'
+    vortexStatusText.textContent = 'Vortex active'
   }
 }
 
@@ -290,13 +257,7 @@ document.getElementById('btn-detect-vortex').addEventListener('click', async () 
   btn.disabled = true
   btn.textContent = 'Detecting…'
   const result = await window.electronAPI.vortexDetect()
-  if (result.found) {
-    fieldVortexPath.value = result.path
-    await refreshVortexProfiles()
-  } else {
-    fieldVortexPath.value = ''
-    fieldVortexProfile.innerHTML = '<option value="">No Vortex installation found</option>'
-  }
+  fieldVortexPath.value = result.found ? result.path : ''
   updateVortexStatus()
   btn.disabled = false
   btn.textContent = 'Auto-detect Vortex'
@@ -307,22 +268,11 @@ document.getElementById('btn-browse-vortex').addEventListener('click', async () 
   if (result) {
     const exePath = result.endsWith('.exe') ? result : result + '\\Vortex.exe'
     fieldVortexPath.value = exePath
-    await refreshVortexProfiles()
     updateVortexStatus()
   }
 })
 
-document.getElementById('btn-refresh-profiles').addEventListener('click', async () => {
-  await refreshVortexProfiles()
-  updateVortexStatus()
-})
-
-document.getElementById('btn-open-profiles').addEventListener('click', () => {
-  window.electronAPI.vortexOpenProfilesDir()
-})
-
 fieldVortexEnabled.addEventListener('change', updateVortexStatus)
-fieldVortexProfile.addEventListener('change', updateVortexStatus)
 
 // ── Install / Update Client Files ────────────────────────────────────────────
 const installStatusClient = document.getElementById('install-status-client')
@@ -447,7 +397,7 @@ const badgePlayers = document.getElementById('badge-players')
 
 async function checkServerStatus() {
   const data = await window.electronAPI.fetchStatus()
-  if (!data || !data.ok) {
+  if (!data || !data.ok || data.status !== 'online') {
     badgeStatus.classList.remove('online')
     badgeLabel.textContent = 'OFFLINE'
     badgePlayers.hidden = true
@@ -504,31 +454,63 @@ async function loadServerInfo() {
   // `allowed` is session-aware: false only when a session was sent and the
   // backend rejected it (locked/not whitelisted).  Without a session it
   // defaults to true — access is re-checked after Discord login.
-  if (info.allowed === false) serverAllowed = false
+  // `sessionValid: false` means the stored session expired — treat as logged out.
+  if (info.sessionValid === false && discordUser) {
+    // Session expired — clear stale auth so the user can log in again cleanly.
+    await window.electronAPI.discordLogout()
+    discordUser   = null
+    serverAllowed = true
+    renderTopbarDiscord()
+  } else if (info.allowed === false) {
+    serverAllowed = false
+  }
 
   updateLockState()
 
   strip.hidden = false
 }
 
-// ── Launcher update check ─────────────────────────────────────────────────────
+// ── Launcher updates ──────────────────────────────────────────────────────────
 const launcherVersionEl = document.getElementById('launcher-version')
+let latestUpdateState = null
 
-async function checkLauncherUpdate() {
-  const result = await window.electronAPI.checkUpdate()
-  if (!result) return
+function renderUpdateState(state) {
+  if (!state) return
+  latestUpdateState = state
+  launcherVersionEl.classList.remove('update-available', 'update-downloading', 'update-ready', 'update-error')
+  launcherVersionEl.title = state.message || ''
 
-  if (result.hasUpdate) {
-    launcherVersionEl.textContent = '⬆ UPDATE AVAILABLE'
+  if (state.status === 'checking') {
+    launcherVersionEl.textContent = 'CHECKING…'
+  } else if (state.status === 'available') {
+    launcherVersionEl.textContent = `UPDATE v${state.availableVersion || ''}`
     launcherVersionEl.classList.add('update-available')
-    launcherVersionEl.title = `v${result.latest} is available — click to download`
-    launcherVersionEl.addEventListener('click', () => {
-      if (result.downloadUrl) window.electronAPI.openExternal(result.downloadUrl)
-    })
+  } else if (state.status === 'downloading') {
+    launcherVersionEl.textContent = `UPDATE ${Math.round(state.percent || 0)}%`
+    launcherVersionEl.classList.add('update-downloading')
+  } else if (state.status === 'ready') {
+    launcherVersionEl.textContent = 'RESTART TO UPDATE'
+    launcherVersionEl.classList.add('update-ready')
+  } else if (state.status === 'error') {
+    launcherVersionEl.textContent = `v${state.currentVersion}`
+    launcherVersionEl.classList.add('update-error')
   } else {
-    launcherVersionEl.textContent = `v${result.current}`
-    launcherVersionEl.classList.remove('update-available')
+    launcherVersionEl.textContent = `v${state.currentVersion}`
   }
+}
+
+launcherVersionEl.addEventListener('click', async () => {
+  if (latestUpdateState?.canInstall) {
+    await window.electronAPI.installUpdate()
+  } else if (!['checking', 'available', 'downloading'].includes(latestUpdateState?.status)) {
+    renderUpdateState(await window.electronAPI.checkForUpdates())
+  }
+})
+
+window.electronAPI.onUpdateState(renderUpdateState)
+
+async function initializeUpdates() {
+  renderUpdateState(await window.electronAPI.getUpdateState())
 }
 
 // ── News ──────────────────────────────────────────────────────────────────────
@@ -536,8 +518,8 @@ const newsGrid = document.getElementById('news-grid')
 
 const FALLBACK_NEWS = [
   {
-    title: 'The Launcher Has Arrived',
-    body:  'The Frostfall launcher is now available.',
+    title: 'Welcome to SkyMP',
+    body:  'Configure this launcher for your SkyMP multiplayer server.',
     date:  'Apr 14, 2026',
     tag:   'UPDATE',
     image: null,
@@ -766,10 +748,15 @@ async function loadMetrics() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-loadSettings()
-checkServerStatus()
-checkLauncherUpdate()
-loadNews()
-loadServerInfo()
-loadModlist()
-setInterval(checkServerStatus, 30_000)
+async function initialize() {
+  await loadAppConfig()
+  await loadSettings()
+  await initializeUpdates()
+  checkServerStatus()
+  loadNews()
+  loadServerInfo()
+  loadModlist()
+  setInterval(checkServerStatus, 30_000)
+}
+
+initialize()

@@ -1,68 +1,50 @@
 {
-  "name": "frostfall-launcher",
-  "version": "1.1.0",
-  "description": "Launcher for the Frostfall roleplay server",
-  "main": "src/main.js",
+  "name": "skymp-launcher",
+  "version": "2.0.0",
+  "description": "Customizable launcher template for SkyMP multiplayer servers",
+  "main": "app-dist/main.cjs",
   "author": "F02K",
   "license": "MIT",
   "scripts": {
-    "start": "electron .",
-    "dev": "electron . --dev",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:linux": "electron-builder --linux",
-    "build:mac": "electron-builder --mac"
+    "build:app": "node scripts/build.mjs",
+    "start": "npm run build:app && electron .",
+    "dev": "npm run build:app && electron . --dev",
+    "test": "npm run build:app && node --test test/*.test.js && tsx --test test/app/*.test.ts",
+    "test:e2e": "npm run build:app && playwright test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/app test/app e2e scripts/build.mjs playwright.config.ts",
+    "format:check": "prettier --check src/app test/app e2e scripts package.json launcher.config.json launcher.config.schema.json playwright.config.ts",
+    "check": "npm run typecheck && npm run lint && npm test && npm run validate:config",
+    "validate:config": "node scripts/validate-config.js",
+    "validate:release": "node scripts/validate-config.js --release",
+    "build": "npm run build:app && npm run validate:config && electron-builder --config electron-builder.config.js",
+    "build:win": "npm run build:app && npm run validate:config && electron-builder --config electron-builder.config.js --win",
+    "build:linux": "npm run build:app && npm run validate:config && electron-builder --config electron-builder.config.js --linux",
+    "build:mac": "npm run build:app && npm run validate:config && electron-builder --config electron-builder.config.js --mac"
   },
   "dependencies": {
-    "adm-zip":        "^0.5.10",
-    "classic-level":  "^1.4.1",
-    "dotenv":         "^16.4.5",
-    "electron-store": "^8.2.0"
+    "adm-zip": "^0.6.0",
+    "classic-level": "^1.4.1",
+    "dotenv": "^16.4.5",
+    "electron-log": "^5.4.4",
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.8.9",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "electron":         "^41.2.0",
-    "electron-builder": "^26.8.1"
-  },
-  "build": {
-    "appId": "com.frostfall.launcher",
-    "productName": "Frostfall Launcher",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "src/**/*",
-      "assets/**/*",
-      "package.json"
-    ],
-    "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
-      "icon": "assets/icon.ico"
-    },
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "icon": "assets/icon.png"
-    },
-    "mac": {
-      "target": [
-        "dmg"
-      ],
-      "icon": "assets/icon.icns"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "installerIcon": "assets/icon.ico",
-      "uninstallerIcon": "assets/icon.ico"
-    }
+    "@eslint/js": "^10.0.1",
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource/cinzel": "^5.3.0",
+    "@playwright/test": "^1.61.1",
+    "@types/adm-zip": "^0.5.8",
+    "axe-core": "^4.12.1",
+    "electron": "^41.2.0",
+    "electron-builder": "^26.8.1",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.7.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.1",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.65.0"
   }
 }
