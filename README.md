@@ -32,7 +32,7 @@ DIRECTORY_URL=http://localhost:4000
 DIRECTORY_PUBLIC_KEY=BASE64_SPKI_PUBLIC_KEY
 ```
 
-The launcher uses the official SkyMP Directory at `https://skyservers.online`
+The launcher uses the official SkyServers Directory at `https://skyservers.online`
 by default. Every catalog or private-join response is verified with its pinned
 Ed25519 key before a server address or operator backend URL is accepted:
 
