@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": [
     "app",
-    "backend",
+    "directory",
     "links",
     "branding",
     "updates",
@@ -29,13 +29,36 @@
         "description": { "type": "string", "minLength": 1, "maxLength": 160 }
       }
     },
-    "backend": {
+    "directory": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["apiUrl"],
+      "required": ["url", "publicKey"],
       "properties": {
-        "apiUrl": { "type": "string", "format": "uri" },
-        "apiBasePath": { "type": "string", "pattern": "^/[^?#]*$" }
+        "url": { "type": "string", "format": "uri" },
+        "publicKey": { "type": "string" },
+        "filters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "region": { "type": "string" },
+            "tag": { "type": "string" }
+          }
+        }
+      }
+    },
+    "modpack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "bridge", "wabbajack", "maxArchiveBytes"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "bridge": { "$ref": "#/$defs/pinnedTool" },
+        "wabbajack": { "$ref": "#/$defs/pinnedTool" },
+        "maxArchiveBytes": {
+          "type": "integer",
+          "minimum": 1048576,
+          "maximum": 1099511627776
+        }
       }
     },
     "links": {
@@ -108,6 +131,18 @@
           "minimum": 1048576,
           "maximum": 4294967296
         }
+      }
+    }
+  },
+  "$defs": {
+    "pinnedTool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "url", "sha256"],
+      "properties": {
+        "version": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri" },
+        "sha256": { "type": "string", "pattern": "^$|^[a-fA-F0-9]{64}$" }
       }
     }
   }

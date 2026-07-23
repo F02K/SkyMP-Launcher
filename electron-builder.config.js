@@ -14,7 +14,6 @@ module.exports = {
   directories: { output: 'dist' },
   files: [
     'app-dist/**/*',
-    'src/vortex.js',
     'assets/**/*',
     'launcher.config.json',
     'package.json',

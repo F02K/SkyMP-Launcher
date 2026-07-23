@@ -1,22 +1,22 @@
 import rawConfig from "../../launcher.config.json";
 
 const raw: any = rawConfig;
-const apiUrl = String(process.env.API_URL || raw.backend.apiUrl).replace(
-  /\/$/,
-  "",
+const directoryUrl = String(
+  process.env.DIRECTORY_URL ||
+    raw.directory?.url ||
+    "https://skyservers.online",
+).replace(/\/$/, "");
+const directoryPublicKey = String(
+  process.env.DIRECTORY_PUBLIC_KEY || raw.directory?.publicKey || "",
 );
 
 export const config = Object.freeze({
   ...raw,
-  backend: {
-    ...raw.backend,
-    apiUrl,
-    apiBasePath: String(raw.backend.apiBasePath || "/api/v2").replace(
-      /\/$/,
-      "",
-    ),
+  directory: {
+    url: directoryUrl,
+    publicKey: directoryPublicKey,
+    filters: { ...(raw.directory?.filters || {}) },
   },
-  apiUrl,
   public: {
     app: { ...raw.app },
     links: { ...raw.links },
@@ -27,6 +27,10 @@ export const config = Object.freeze({
     },
     updates: { provider: raw.updates.provider },
     behavior: { defaultLocale: raw.behavior.defaultLocale },
+    modpack: {
+      enabled: Boolean(raw.modpack?.enabled),
+      wabbajackVersion: String(raw.modpack?.wabbajack?.version || ""),
+    },
   },
 });
 

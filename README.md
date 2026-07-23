@@ -1,10 +1,10 @@
-# SkyMP Launcher 2.0
+# SkyMP Launcher
 
 A customizable Electron launcher template for SkyMP multiplayer servers. It
 handles server discovery, Discord authentication, SkyMP client files, optional
-Vortex integration, SKSE startup, and automatic launcher updates.
+server-bound portable MO2 modpacks, SKSE startup, and automatic launcher updates.
 
-Version 2.0 adds signed client manifests, resumable transactional repairs,
+The launcher uses signed client manifests, resumable transactional repairs,
 server-scoped dashboards, encrypted credentials, first-run onboarding,
 English/German UI, keyboard accessibility, local diagnostics, and a
 TypeScript/esbuild application architecture.
@@ -16,9 +16,8 @@ own build.
 ## Requirements
 
 - Node.js 22 or newer
-- A compatible launcher backend, such as
-  [Frostfall-Backend](https://github.com/F02K/Frostfall-Backend)
-- Windows for the supported Skyrim/Vortex gameplay path
+- A compatible SkyMP Directory and managed operator backend
+- Windows 10/11 for the supported Skyrim/MO2 gameplay path
 
 ```powershell
 npm install
@@ -26,11 +25,39 @@ npm start
 ```
 
 Use `npm run dev` to load `.env`, open DevTools, and disable automatic launcher
-updates. `API_URL` remains available as a local override:
+updates. Self-hosted builds can override the mandatory Directory:
 
 ```env
-API_URL=http://localhost:4000
+DIRECTORY_URL=http://localhost:4000
+DIRECTORY_PUBLIC_KEY=BASE64_SPKI_PUBLIC_KEY
 ```
+
+The launcher uses the official SkyMP Directory at `https://skyservers.online`
+by default. Every catalog or private-join response is verified with its pinned
+Ed25519 key before a server address or operator backend URL is accepted:
+
+```json
+{
+  "directory": {
+    "url": "https://skyservers.online",
+    "publicKey": "BASE64_SPKI_PUBLIC_KEY",
+    "filters": { "region": "eu-central" }
+  }
+}
+```
+
+Self-hosted builds must replace both `directory.url` and `directory.publicKey`.
+For local deployments the same values can be supplied as `DIRECTORY_URL` and
+`DIRECTORY_PUBLIC_KEY`. Direct backend discovery is intentionally unsupported.
+`skymp://join/<code>` links add a signed private Directory result to the local
+server list.
+
+Portable MO2 support is fail-closed until the separately released GPL bridge
+and Wabbajack artifacts are pinned. Set `modpack.enabled` to `true` only after
+filling both non-zero SHA-256 values in `launcher.config.json`. Wabbajack is
+locked to `4.2.1.4`; a server manifest cannot override either executable.
+The complete backend and JSONL bridge contract is documented in
+[`docs/modpack-backend-contract.md`](docs/modpack-backend-contract.md).
 
 ## Customize a fork
 
@@ -44,7 +71,11 @@ Edit `launcher.config.json`:
     "shortName": "My Server",
     "description": "Launcher for My Server"
   },
-  "backend": { "apiUrl": "https://api.example.com" },
+  "directory": {
+    "url": "https://directory.example.com",
+    "publicKey": "BASE64_SPKI_PUBLIC_KEY",
+    "filters": {}
+  },
   "links": {
     "website": "https://example.com",
     "discord": "https://discord.gg/example",
@@ -86,7 +117,7 @@ links are hidden automatically. Run `npm run validate:config` before building.
 
 Replace the example manifest key with the public half of the operator's
 Ed25519 release key. Keep the private key only in the backend release
-environment. See [`docs/backend-launcher-v2.md`](docs/backend-launcher-v2.md)
+environment. See [`docs/backend-launcher.md`](docs/backend-launcher.md)
 for the complete backend contract.
 
 ## Launcher updates
@@ -167,40 +198,43 @@ secrets for production code signing.
 
 ## Backend contract
 
-The launcher uses a central API client rooted at the configurable `backend.apiBasePath` (default `/api/v2`):
+The launcher discovers servers exclusively through the pinned Directory. After
+validating a signed `directory-managed` descriptor, it uses the operator
+backend's fixed `/api` root:
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/api/v2/launcher/servers` | Server list |
-| GET | `/api/v2/launcher/servers/:key/status` | Online state and player count |
-| GET | `/api/v2/launcher/servers/:key` | Auth, lock, and server metadata |
-| GET | `/api/v2/launcher/servers/:key/news` | News cards |
-| GET | `/api/v2/launcher/servers/:key/mods` | Backend/Nexus mod list |
-| GET | `/api/v2/launcher/servers/:key/metrics` | Server statistics |
-| GET | `/api/v2/launcher/servers/:key/client/manifest` | Signed client manifest |
-| GET | `/api/v2/launcher/servers/:key/client/download` | Resumable client bundle |
-| GET | `/api/v2/auth/discord/*` | Discord login flow |
-| GET | `/launcher-updates/*` | Generic launcher update feed |
+| Method | Path                                          | Purpose                         |
+| ------ | --------------------------------------------- | ------------------------------- |
+| GET    | `/api/launcher/servers/:key/status`           | Online state and player count   |
+| GET    | `/api/launcher/servers/:key`                  | Auth, lock, and server metadata |
+| GET    | `/api/launcher/servers/:key/news`             | Optional news cards             |
+| GET    | `/api/launcher/servers/:key/mods`             | Optional published mod list     |
+| GET    | `/api/launcher/servers/:key/metrics`          | Optional server statistics      |
+| GET    | `/api/launcher/servers/:key/client/manifest`  | Signed client manifest          |
+| GET    | `/api/launcher/servers/:key/client/download`  | Resumable client bundle         |
+| GET    | `/api/launcher/servers/:key/modpack/manifest` | Signed required MO2 modpack     |
+| GET    | `/api/launcher/servers/:key/modpack/download` | Resumable `.wabbajack` file     |
+| POST   | `/api/auth/directory/exchange`                | Exchange a Directory play grant |
+| GET    | `/launcher-updates/*`                         | Generic launcher update feed    |
 
-`/api/version` remains a compatibility endpoint for Launcher 1.1.1 and older.
-It is not used by the new updater.
+Global Discord login and play grants use the Directory. There are no aliases,
+redirects, direct-backend catalog routes, or compatibility fallbacks.
 
 ## Project structure
 
 ```text
-launcher.config.json       Project identity, branding, backend, updates
+launcher.config.json       Identity, Directory key, branding, updates
 electron-builder.config.js Packaging and update-provider configuration
 scripts/                   Build and configuration validation
 src/app/                   Active Launcher 2 TypeScript application
-src/vortex.js              Vortex detection and profile integration
+src/app/modpack.ts         Managed MO2/Wabbajack installation and verification
 src/renderer/              HTML and CSS presentation
 test/app/                  Launcher application unit tests
-test/*.test.js             Legacy compatibility contract tests
+test/*.test.js             Configuration validation tests
 e2e/                       Playwright Electron and accessibility tests
 docs/                      Backend contract documentation
 assets/                    Replaceable background and icons
 ```
 
 The launcher remains deliberately SkyMP-specific: required client paths, SKSE,
-Skyrim Special Edition, and Vortex behavior are shared template functionality,
+Skyrim Special Edition, and managed MO2 behavior are shared template functionality,
 while project identity and distribution are configurable.

@@ -75,8 +75,9 @@ test("repair resumes a partial package and installs verified files", async () =>
       `http://127.0.0.1:${(server.address() as any).port}/client.zip`,
   };
   const installer = new InstallerService({
-    backend,
+    backend: () => backend,
     settings,
+    installRoot: () => root,
     publicKey: publicKey.export({ type: "spki", format: "pem" }).toString(),
     maxBytes: 1024 * 1024,
     downloadsDir: downloads,
@@ -128,8 +129,9 @@ test("a failed commit restores every replaced file", async () => {
     },
   };
   const installer = new InstallerService({
-    backend: {} as any,
+    backend: () => ({}) as any,
     settings,
+    installRoot: () => root,
     publicKey: "",
     maxBytes: 1024,
     downloadsDir: temp,

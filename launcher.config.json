@@ -6,9 +6,24 @@
     "shortName": "SkyMP",
     "description": "Launcher for SkyMP multiplayer servers"
   },
-  "backend": {
-    "apiUrl": "https://api.frostfall.online",
-    "apiBasePath": "/api/v2"
+  "directory": {
+    "url": "https://skyservers.online",
+    "publicKey": "MCowBQYDK2VwAyEA2jcO6XMepYSleeMojjMAfRjX9Pof9pS+B3uh9+Z17kE=",
+    "filters": {}
+  },
+  "modpack": {
+    "enabled": false,
+    "bridge": {
+      "version": "1.0.0",
+      "url": "https://api.frostfall.online/launcher-tools/mo2-bridge/1.0.0/Frostfall.WabbajackBridge.exe",
+      "sha256": ""
+    },
+    "wabbajack": {
+      "version": "4.2.1.4",
+      "url": "https://github.com/wabbajack-tools/wabbajack/releases/download/4.2.1.4/Wabbajack.exe",
+      "sha256": ""
+    },
+    "maxArchiveBytes": 214748364800
   },
   "links": {
     "website": "https://github.com/F02K/Frostfall-Launcher",
@@ -32,7 +47,12 @@
   },
   "security": {
     "clientManifestPublicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA3mOvzuFgf9zc9lRARgEMILfLuxfYuxGwbXFxSSon5q8=\n-----END PUBLIC KEY-----",
-    "externalHosts": ["github.com", "www.nexusmods.com", "discord.com"]
+    "externalHosts": [
+      "github.com",
+      "www.nexusmods.com",
+      "discord.com",
+      "discord.gg"
+    ]
   },
   "behavior": {
     "defaultLocale": "en",

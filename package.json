@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/app test/app e2e scripts/build.mjs playwright.config.ts",
     "format:check": "prettier --check src/app test/app e2e scripts package.json launcher.config.json launcher.config.schema.json playwright.config.ts",
-    "check": "npm run typecheck && npm run lint && npm test && npm run validate:config",
+    "check": "npm run typecheck && npm run lint && npm test && npm run validate:config && npm run check:api-contract",
+    "check:api-contract": "node scripts/check-api-contract.js",
     "validate:config": "node scripts/validate-config.js",
     "validate:release": "node scripts/validate-config.js --release",
     "build": "npm run build:app && npm run validate:config && electron-builder --config electron-builder.config.js",
@@ -24,7 +25,6 @@
   },
   "dependencies": {
     "adm-zip": "^0.6.0",
-    "classic-level": "^1.4.1",
     "dotenv": "^16.4.5",
     "electron-log": "^5.4.4",
     "electron-store": "^8.2.0",

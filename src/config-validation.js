@@ -2,6 +2,7 @@
 
 const fs = require('fs')
 const path = require('path')
+const crypto = require('crypto')
 
 const APP_ID_PATTERN = /^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z0-9_-]+)+$/
 const PROVIDERS = new Set(['generic', 'github', 'disabled'])
@@ -48,10 +49,36 @@ function validateConfig(config, options = {}) {
     }
   }
 
-  const apiUrl = config.backend?.apiUrl || ''
-  if (!isWebUrl(apiUrl)) errors.push('backend.apiUrl must be an http(s) URL')
-  if (release && !isWebUrl(apiUrl, { httpsOnly: true })) {
-    errors.push('backend.apiUrl must use HTTPS for release builds')
+  if (!isWebUrl(config.directory?.url || '', { httpsOnly: release })) {
+    errors.push(`directory.url must be a valid ${release ? 'HTTPS' : 'http(s)'} URL`)
+  }
+  try {
+    const key = config.directory?.publicKey || ''
+    const publicKey = key.includes('BEGIN PUBLIC KEY')
+      ? crypto.createPublicKey(key)
+      : crypto.createPublicKey({ key: Buffer.from(key, 'base64'), format: 'der', type: 'spki' })
+    if (publicKey.asymmetricKeyType !== 'ed25519') throw new Error('not Ed25519')
+  } catch {
+    errors.push('directory.publicKey must be an Ed25519 PEM or base64 SPKI public key')
+  }
+
+  if (config.modpack?.enabled) {
+    for (const name of ['bridge', 'wabbajack']) {
+      const tool = config.modpack?.[name]
+      if (!isWebUrl(tool?.url || '', { httpsOnly: true })) {
+        errors.push(`modpack.${name}.url must be an HTTPS URL when enabled`)
+      }
+      if (!/^[a-f0-9]{64}$/i.test(tool?.sha256 || '') || /^0{64}$/.test(tool?.sha256 || '')) {
+        errors.push(`modpack.${name}.sha256 must pin a non-zero SHA-256 when enabled`)
+      }
+    }
+    if (config.modpack?.wabbajack?.version !== '4.2.1.4') {
+      errors.push('modpack.wabbajack.version must be pinned to 4.2.1.4')
+    }
+    const maxModpackBytes = config.modpack?.maxArchiveBytes
+    if (!Number.isInteger(maxModpackBytes) || maxModpackBytes < 1048576 || maxModpackBytes > 1099511627776) {
+      errors.push('modpack.maxArchiveBytes must be between 1 MiB and 1 TiB')
+    }
   }
 
   for (const field of ['website', 'discord', 'news']) {

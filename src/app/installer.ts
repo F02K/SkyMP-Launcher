@@ -26,8 +26,9 @@ export class InstallerService {
   private state: InstallState = { phase: "idle", message: "" };
   constructor(
     private options: {
-      backend: BackendApi;
+      backend: () => BackendApi;
       settings: SettingsService;
+      installRoot: () => string;
       publicKey: string;
       maxBytes: number;
       downloadsDir: string;
@@ -93,9 +94,10 @@ export class InstallerService {
     this.setState({ phase: "preflight", message: "Checking installation…" });
     const settings = this.options.settings;
     const server = settings.activeServer();
-    const root = settings.store.get("skyrimPath");
+    const skyrimRoot = settings.store.get("skyrimPath");
+    const root = this.options.installRoot();
     const checks: PreflightReport["checks"] = [];
-    if (!root || !fs.existsSync(path.join(root, "SkyrimSE.exe")))
+    if (!skyrimRoot || !fs.existsSync(path.join(skyrimRoot, "SkyrimSE.exe")))
       checks.push({
         id: "skyrim",
         status: "error",
@@ -107,14 +109,6 @@ export class InstallerService {
         status: "ok",
         message: "Skyrim installation found.",
       });
-    if (!fs.existsSync(path.join(root || "", "skse64_loader.exe")))
-      checks.push({
-        id: "skse",
-        status: "error",
-        message: "SKSE loader is missing.",
-      });
-    else
-      checks.push({ id: "skse", status: "ok", message: "SKSE is installed." });
     if (!server)
       checks.push({
         id: "server",
@@ -127,7 +121,7 @@ export class InstallerService {
         status: "ok",
         message: `Server ${server.name} selected.`,
       });
-    if (!settings.getSession())
+    if (!settings.getDirectorySession())
       checks.push({
         id: "auth",
         status: "error",
@@ -144,7 +138,7 @@ export class InstallerService {
     let offline = false;
     if (server) {
       try {
-        manifest = await this.options.backend.manifest(server.key);
+        manifest = await this.options.backend().manifest(server.key);
         if (!verifyManifestSignature(manifest, this.options.publicKey))
           throw new Error("Client manifest signature is invalid.");
         if (manifest.serverKey !== server.key)
@@ -212,13 +206,14 @@ export class InstallerService {
     if (this.controller)
       throw new Error("Another installation is already running.");
     const server = this.options.settings.activeServer();
-    const root = this.options.settings.store.get("skyrimPath");
+    const root = this.options.installRoot();
     if (!server || !root)
-      throw new Error("Skyrim path and server are required.");
+      throw new Error("Managed runtime path and server are required.");
     this.controller = new AbortController();
     const signal = this.controller.signal;
     try {
-      const manifest = await this.options.backend.manifest(server.key, signal);
+      const backend = this.options.backend();
+      const manifest = await backend.manifest(server.key, signal);
       if (!verifyManifestSignature(manifest, this.options.publicKey))
         throw new Error("Client manifest signature is invalid.");
       if (manifest.serverKey !== server.key)
@@ -239,7 +234,7 @@ export class InstallerService {
         `${server.key}-${manifest.version}.zip.part`,
       );
       await this.download(
-        this.options.backend.clientDownloadUrl(server.key),
+        backend.clientDownloadUrl(server.key),
         part,
         manifest,
         signal,

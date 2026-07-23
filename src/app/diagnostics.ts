@@ -30,7 +30,7 @@ export async function exportDiagnostics(
     settings: {
       ...publicSettings,
       skyrimPath: publicSettings.skyrimPath ? "[configured]" : "",
-      vortexPath: publicSettings.vortexPath ? "[configured]" : "",
+      modpackPath: publicSettings.modpackPath ? "[configured]" : "",
       discordUser: publicSettings.discordUser
         ? { username: "[redacted]" }
         : null,

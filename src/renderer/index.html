@@ -1,257 +1,593 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; img-src 'self' data: https:">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SkyMP Launcher</title>
-  <link rel="stylesheet" href="styles.css" />
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self'; font-src 'self'; script-src 'self'; img-src 'self' data: https:"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SkyMP Launcher</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg" id="launcher-background"></div>
 
-  <div class="bg" id="launcher-background"></div>
-
-  <div id="app">
-
-    <!-- ── Top bar ──────────────────────────────────── -->
-    <header class="topbar">
-      <div class="topbar-logo">
-        <div class="logo-emblem" id="launcher-emblem">S</div>
-        <div class="logo-text-block">
-          <span class="logo-name" id="launcher-name">SkyMP</span>
-          <span class="logo-tagline" id="launcher-tagline">Multiplayer Server</span>
-        </div>
-      </div>
-
-      <nav class="topbar-nav">
-        <button class="topnav-link" data-href="website" data-i18n="website">WEBSITE</button>
-        <button class="topnav-link discord" data-href="discord">DISCORD</button>
-        <button class="topnav-link" id="btn-stats" data-i18n="stats">STATS</button>
-      </nav>
-
-      <div class="topbar-right">
-        <div id="discord-topbar-slot"></div>
-        <button class="btn-gear" id="btn-gear" title="Settings" aria-label="Settings">&#9881;</button>
-        <button class="win-btn" id="btn-minimize" title="Minimize" aria-label="Minimize">&#8722;</button>
-        <button class="win-btn" id="btn-maximize" title="Maximize" aria-label="Maximize">&#9633;</button>
-        <button class="win-btn close" id="btn-close" title="Close" aria-label="Close">&#10005;</button>
-      </div>
-    </header>
-
-    <!-- ── Main content ─────────────────────────────── -->
-    <main class="main">
-      <div class="main-header">
-        <div class="status-badges">
-          <span class="badge-status" id="badge-status">
-            <span class="badge-dot" id="badge-dot"></span>
-            <span id="badge-label">CHECKING</span>
-          </span>
-          <span class="badge-players" id="badge-players" hidden></span>
-        </div>
-        <button class="read-more" id="btn-read-more" hidden data-i18n="readMore">READ MORE &rarr;</button>
-      </div>
-
-      <!-- ── Server info strip ──────────────────────── -->
-      <div class="server-info-strip" id="server-info-strip" hidden>
-        <span class="sinfo-item" id="sinfo-name"></span>
-        <span class="sinfo-sep">|</span>
-        <span class="sinfo-item" id="sinfo-capacity"></span>
-        <span class="sinfo-sep" id="sinfo-mode-sep" hidden>|</span>
-        <span class="sinfo-item sinfo-mode" id="sinfo-mode" hidden></span>
-        <span class="sinfo-sep" id="sinfo-discord-sep" hidden>|</span>
-        <span class="sinfo-item sinfo-discord" id="sinfo-discord" hidden>&#128481; Discord login required</span>
-        <span class="sinfo-sep" id="sinfo-locked-sep" hidden>|</span>
-        <span class="sinfo-item sinfo-locked" id="sinfo-locked" hidden>&#128274; Server locked</span>
-      </div>
-
-      <!-- ── Two-column content layout ─────────────── -->
-      <div class="content-layout">
-
-        <!-- News -->
-        <section class="news-section">
-          <div class="section-header">
-            <h2 class="section-title">LATEST NEWS</h2>
+    <div id="app">
+      <!-- ── Top bar ──────────────────────────────────── -->
+      <header class="topbar">
+        <div class="topbar-logo">
+          <div class="logo-emblem" id="launcher-emblem">S</div>
+          <div class="logo-text-block">
+            <span class="logo-name" id="launcher-name">SkyMP</span>
+            <span class="logo-tagline" id="launcher-tagline"
+              >Multiplayer Server</span
+            >
           </div>
-          <div class="news-grid" id="news-grid">
-            <!-- populated by renderer.js -->
+        </div>
+
+        <nav class="topbar-nav">
+          <button class="topnav-link" data-href="website" data-i18n="website">
+            WEBSITE
+          </button>
+          <button class="topnav-link discord" data-href="discord">
+            DISCORD
+          </button>
+          <button class="topnav-link" id="btn-stats" data-i18n="stats">
+            STATS
+          </button>
+        </nav>
+
+        <div class="topbar-right">
+          <div id="discord-topbar-slot"></div>
+          <button
+            class="btn-gear"
+            id="btn-gear"
+            title="Settings"
+            aria-label="Settings"
+          >
+            &#9881;
+          </button>
+          <button
+            class="win-btn"
+            id="btn-minimize"
+            title="Minimize"
+            aria-label="Minimize"
+          >
+            &#8722;
+          </button>
+          <button
+            class="win-btn"
+            id="btn-maximize"
+            title="Maximize"
+            aria-label="Maximize"
+          >
+            &#9633;
+          </button>
+          <button
+            class="win-btn close"
+            id="btn-close"
+            title="Close"
+            aria-label="Close"
+          >
+            &#10005;
+          </button>
+        </div>
+      </header>
+
+      <!-- ── Main content ─────────────────────────────── -->
+      <main class="main">
+        <div class="main-header" hidden>
+          <div class="status-badges">
+            <span class="badge-status" id="badge-status">
+              <span class="badge-dot" id="badge-dot"></span>
+              <span id="badge-label">CHECKING</span>
+            </span>
+            <span class="badge-players" id="badge-players" hidden></span>
           </div>
+          <button
+            class="read-more"
+            id="btn-read-more"
+            hidden
+            data-i18n="readMore"
+          >
+            READ MORE &rarr;
+          </button>
+        </div>
+
+        <section class="server-browser" id="server-browser">
+          <div class="server-browser-heading">
+            <div class="server-browser-title">
+              <span class="server-browser-eyebrow" data-i18n="directoryEyebrow"
+                >SKYMP DIRECTORY</span
+              >
+              <h1 data-i18n="serverBrowserTitle">Find a server</h1>
+              <p data-i18n="serverBrowserIntro">
+                Choose a verified server or open one of your favorites.
+              </p>
+            </div>
+            <button
+              class="btn-browse"
+              id="btn-directory-retry"
+              data-i18n="refresh"
+            >
+              Refresh
+            </button>
+          </div>
+          <div class="server-browser-controls">
+            <div class="server-search-wrap">
+              <span class="server-search-icon" aria-hidden="true">⌕</span>
+              <input
+                class="setting-input"
+                id="server-search"
+                type="search"
+                placeholder="Search by name, region or tag…"
+                aria-label="Search by name, region or tag…"
+              />
+            </div>
+            <div class="server-filter-group" aria-label="Serverfilter">
+              <label class="setting-checkbox-row filter-toggle"
+                ><input type="checkbox" id="server-filter-favorites" /><span
+                  data-i18n="favoritesOnly"
+                  >Favorites only</span
+                ></label
+              >
+              <label class="setting-checkbox-row filter-toggle"
+                ><input type="checkbox" id="server-filter-online" /><span
+                  data-i18n="onlineOnly"
+                  >Online only</span
+                ></label
+              >
+            </div>
+          </div>
+          <div class="server-browser-state" id="server-browser-state"></div>
+          <div class="server-grid" id="server-grid"></div>
         </section>
 
-        <!-- Modlist -->
-        <section class="modlist-section">
-          <div class="section-header section-header--modlist">
-            <h2 class="section-title">MODLIST</h2>
-            <span class="modlist-count" id="modlist-count"></span>
-          </div>
-          <div class="modlist-panel" id="modlist">
-            <!-- populated by renderer.js -->
-          </div>
-        </section>
-
-      </div>
-    </main>
-
-    <!-- ── Bottom bar ────────────────────────────────── -->
-    <footer class="bottombar">
-      <div class="bottombar-info">
-        <div class="info-item">
-          <span class="info-label">LAUNCHER</span>
-          <span class="info-value" id="launcher-version">—</span>
+        <!-- ── Server info strip ──────────────────────── -->
+        <div class="server-info-strip" id="server-info-strip" hidden>
+          <span class="sinfo-item" id="sinfo-name"></span>
+          <span class="sinfo-sep">|</span>
+          <span class="sinfo-item" id="sinfo-capacity"></span>
+          <span class="sinfo-sep" id="sinfo-mode-sep" hidden>|</span>
+          <span class="sinfo-item sinfo-mode" id="sinfo-mode" hidden></span>
+          <span class="sinfo-sep" id="sinfo-discord-sep" hidden>|</span>
+          <span class="sinfo-item sinfo-discord" id="sinfo-discord" hidden
+            >&#128481; Discord login required</span
+          >
+          <span class="sinfo-sep" id="sinfo-locked-sep" hidden>|</span>
+          <span class="sinfo-item sinfo-locked" id="sinfo-locked" hidden
+            >&#128274; Server locked</span
+          >
         </div>
-        <div class="info-divider"></div>
-        <div class="info-item">
-          <span class="info-label">SERVER</span>
-          <span class="info-value" id="footer-server-name">—</span>
-          <select class="footer-server-select" id="footer-server-select" hidden></select>
+
+        <!-- ── Two-column content layout ─────────────── -->
+        <div class="content-layout" hidden>
+          <div class="server-overview-header" id="server-overview-header">
+            <button
+              class="btn-browse"
+              id="btn-switch-server"
+              data-i18n="switchServer"
+            >
+              ← Switch server
+            </button>
+            <button
+              class="server-favorite-button"
+              id="btn-active-favorite"
+              aria-label="Toggle favorite"
+            >
+              ☆
+            </button>
+            <h1 id="overview-server-name"></h1>
+            <p id="overview-server-description"></p>
+            <div class="server-overview-meta" id="overview-server-meta"></div>
+            <div class="server-access-message" id="server-access-message"></div>
+            <button
+              class="btn-browse"
+              id="btn-guild-invite"
+              data-i18n="joinDiscord"
+              hidden
+            >
+              Join Discord server
+            </button>
+          </div>
+
+          <!-- News -->
+          <section class="news-section" id="news-section">
+            <div class="section-header">
+              <h2 class="section-title">LATEST NEWS</h2>
+            </div>
+            <div class="news-grid" id="news-grid">
+              <!-- populated by renderer.js -->
+            </div>
+          </section>
+
+          <!-- Modlist -->
+          <section class="modlist-section" id="modlist-section">
+            <div class="section-header section-header--modlist">
+              <h2 class="section-title">MODLIST</h2>
+              <span class="modlist-count" id="modlist-count"></span>
+            </div>
+            <div class="modlist-panel" id="modlist">
+              <!-- populated by renderer.js -->
+            </div>
+          </section>
         </div>
-      </div>
-      <div class="bottombar-right">
-        <span class="connect-warning" id="connect-warning"></span>
-        <button class="btn-play" id="btn-connect" data-i18n="play">&#9654; PLAY</button>
-      </div>
-    </footer>
+      </main>
 
-  </div>
+      <!-- ── Bottom bar ────────────────────────────────── -->
+      <footer class="bottombar">
+        <div class="bottombar-info">
+          <div class="info-item">
+            <span class="info-label">LAUNCHER</span>
+            <span class="info-value" id="launcher-version">—</span>
+          </div>
+          <div class="info-divider"></div>
+          <div class="info-item">
+            <span class="info-label">SERVER</span>
+            <span class="info-value" id="footer-server-name">—</span>
+            <select
+              class="footer-server-select"
+              id="footer-server-select"
+              hidden
+            ></select>
+          </div>
+        </div>
+        <div class="bottombar-right">
+          <span class="connect-warning" id="connect-warning"></span>
+          <button class="btn-play" id="btn-connect" data-i18n="play" hidden>
+            &#9654; PLAY
+          </button>
+        </div>
+      </footer>
+    </div>
 
-  <!-- ── Settings modal ───────────────────────────── -->
-  <div class="modal-overlay" id="modal-settings" hidden>
-    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="settings-title" tabindex="-1">
-      <div class="modal-header">
-        <span class="modal-title" id="settings-title" data-i18n="settings">&#9881;&nbsp; Settings</span>
-        <button class="modal-close" id="modal-close" title="Close" aria-label="Close">&#10005;</button>
-      </div>
+    <!-- ── Settings modal ───────────────────────────── -->
+    <div class="modal-overlay" id="modal-settings" hidden>
+      <div
+        class="modal-box"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        tabindex="-1"
+      >
+        <div class="modal-header">
+          <span class="modal-title" id="settings-title" data-i18n="settings"
+            >&#9881;&nbsp; Settings</span
+          >
+          <button
+            class="modal-close"
+            id="modal-close"
+            title="Close"
+            aria-label="Close"
+          >
+            &#10005;
+          </button>
+        </div>
 
-      <!-- Tab bar -->
-      <div class="modal-tabs">
-        <button class="modal-tab active" data-tab="general">General</button>
-        <button class="modal-tab" data-tab="vortex">Vortex</button>
-        <button class="modal-tab" data-tab="system" data-i18n="system">System</button>
-      </div>
+        <!-- Tab bar -->
+        <div class="modal-tabs">
+          <button class="modal-tab active" data-tab="general">General</button>
+          <button class="modal-tab" data-tab="modpack">Modpack</button>
+          <button class="modal-tab" data-tab="system" data-i18n="system">
+            System
+          </button>
+        </div>
 
-      <div class="modal-body">
+        <div class="modal-body">
+          <!-- ── General tab ── -->
+          <div class="tab-panel" id="tab-general">
+            <div class="settings-group">
+              <label
+                class="setting-label"
+                for="setting-skyrim-path"
+                data-i18n="skyrimPath"
+                >Skyrim Installation Path</label
+              >
+              <div class="setting-path-row">
+                <input
+                  class="setting-input"
+                  id="setting-skyrim-path"
+                  type="text"
+                  placeholder="C:\Program Files (x86)\Steam\steamapps\common\Skyrim Special Edition"
+                />
+                <button class="btn-browse" id="btn-browse" data-i18n="browse">
+                  Browse…
+                </button>
+              </div>
+            </div>
 
-        <!-- ── General tab ── -->
-        <div class="tab-panel" id="tab-general">
-
-          <div class="settings-group">
-            <label class="setting-label" for="setting-skyrim-path" data-i18n="skyrimPath">Skyrim Installation Path</label>
-            <div class="setting-path-row">
-              <input class="setting-input" id="setting-skyrim-path" type="text"
-                     placeholder="C:\Program Files (x86)\Steam\steamapps\common\Skyrim Special Edition" />
-               <button class="btn-browse" id="btn-browse" data-i18n="browse">Browse…</button>
+            <div class="tab-actions">
+              <div class="install-status" id="install-status-client"></div>
+              <button class="btn-install" id="btn-install-client">
+                Install / Update Client Files
+              </button>
             </div>
           </div>
 
-          <div class="tab-actions">
-            <div class="install-status" id="install-status-client"></div>
-            <button class="btn-install" id="btn-install-client">Install / Update Client Files</button>
-          </div>
-
-        </div>
-
-        <!-- ── Vortex tab ── -->
-        <div class="tab-panel" id="tab-vortex" hidden>
-
-          <div class="settings-group">
-            <label class="setting-label" for="setting-vortex-path">Vortex Mod Manager</label>
-            <div class="vortex-status-row" id="vortex-status-row">
-              <span class="vortex-status-dot" id="vortex-status-dot"></span>
-              <span class="vortex-status-text" id="vortex-status-text">Not configured</span>
+          <!-- Managed MO2 modpack -->
+          <div class="tab-panel" id="tab-modpack" hidden>
+            <div class="settings-group">
+              <label class="setting-label" for="setting-modpack-path"
+                >Managed MO2 server environment</label
+              >
+              <div class="modpack-status-row">
+                <span class="modpack-status-dot"></span>
+                <span class="modpack-status-text" id="modpack-status-text"
+                  >Not installed</span
+                >
+              </div>
+              <div class="setting-path-row">
+                <input
+                  class="setting-input"
+                  id="setting-modpack-path"
+                  type="text"
+                  readonly
+                  placeholder="Automatically selected per server"
+                />
+                <button
+                  class="btn-browse"
+                  id="btn-select-modpack-location"
+                  data-i18n="browse"
+                >
+                  Browse…
+                </button>
+              </div>
+              <button class="btn-modpack-action" id="btn-nexus-login">
+                Connect Nexus account
+              </button>
             </div>
-            <div class="setting-path-row">
-              <input class="setting-input" id="setting-vortex-path" type="text"
-                     placeholder="Path to Vortex.exe" />
-               <button class="btn-browse" id="btn-browse-vortex" data-i18n="browse">Browse…</button>
+
+            <div class="tab-actions">
+              <div class="install-status" id="install-status-modpack">
+                Nexus Premium installs automatically; free accounts use the
+                guided queue.
+              </div>
+              <button class="btn-install" id="btn-install-modpack">
+                Install / Update MO2 Modpack
+              </button>
             </div>
-            <button class="btn-detect-vortex" id="btn-detect-vortex">Auto-detect Vortex</button>
           </div>
 
-          <label class="setting-checkbox-row" id="vortex-enable-row">
-            <input type="checkbox" id="setting-vortex-enabled" />
-            <span>Enable Vortex integration — install &amp; deploy via profile</span>
-          </label>
-
-          <div class="tab-actions">
-            <div class="install-status" id="install-status-vortex"></div>
-            <button class="btn-install" id="btn-install-vortex">Install Modpack via Vortex</button>
+          <div class="tab-panel" id="tab-system" hidden>
+            <div class="settings-grid">
+              <label
+                class="setting-label"
+                for="setting-locale"
+                data-i18n="language"
+                >Language</label
+              >
+              <select class="setting-input" id="setting-locale">
+                <option value="en">English</option>
+                <option value="de">Deutsch</option>
+              </select>
+              <label class="setting-checkbox-row"
+                ><input type="checkbox" id="setting-launch-at-login" /><span
+                  data-i18n="launchAtLogin"
+                  >Start with Windows</span
+                ></label
+              >
+              <label class="setting-checkbox-row"
+                ><input type="checkbox" id="setting-reduce-motion" /><span
+                  data-i18n="reduceMotion"
+                  >Reduce animations</span
+                ></label
+              >
+              <label
+                class="setting-label"
+                for="setting-close-behavior"
+                data-i18n="closeBehavior"
+                >When closing</label
+              >
+              <select class="setting-input" id="setting-close-behavior">
+                <option value="exit">Exit launcher</option>
+                <option value="tray">Minimize to tray</option>
+              </select>
+              <label
+                class="setting-label"
+                for="setting-after-launch"
+                data-i18n="afterLaunch"
+                >After game launch</label
+              >
+              <select class="setting-input" id="setting-after-launch">
+                <option value="minimize">Minimize</option>
+                <option value="keep">Keep open</option>
+                <option value="close">Close</option>
+              </select>
+              <button
+                class="btn-browse"
+                id="btn-diagnostics"
+                data-i18n="exportDiagnostics"
+              >
+                Export diagnostics
+              </button>
+              <button
+                class="btn-browse"
+                id="btn-onboarding"
+                data-i18n="runSetup"
+              >
+                Run setup assistant
+              </button>
+            </div>
           </div>
 
-        </div>
-
-        <div class="tab-panel" id="tab-system" hidden>
-          <div class="settings-grid">
-            <label class="setting-label" for="setting-locale" data-i18n="language">Language</label>
-            <select class="setting-input" id="setting-locale"><option value="en">English</option><option value="de">Deutsch</option></select>
-            <label class="setting-checkbox-row"><input type="checkbox" id="setting-launch-at-login"><span data-i18n="launchAtLogin">Start with Windows</span></label>
-            <label class="setting-checkbox-row"><input type="checkbox" id="setting-reduce-motion"><span data-i18n="reduceMotion">Reduce animations</span></label>
-            <label class="setting-label" for="setting-close-behavior" data-i18n="closeBehavior">When closing</label>
-            <select class="setting-input" id="setting-close-behavior"><option value="exit">Exit launcher</option><option value="tray">Minimize to tray</option></select>
-            <label class="setting-label" for="setting-after-launch" data-i18n="afterLaunch">After game launch</label>
-            <select class="setting-input" id="setting-after-launch"><option value="minimize">Minimize</option><option value="keep">Keep open</option><option value="close">Close</option></select>
-            <button class="btn-browse" id="btn-diagnostics" data-i18n="exportDiagnostics">Export diagnostics</button>
-            <button class="btn-browse" id="btn-onboarding" data-i18n="runSetup">Run setup assistant</button>
+          <!-- ── Actions (always visible) ── -->
+          <div class="modal-actions">
+            <button class="btn-save" id="btn-save">Save Settings</button>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- ── Actions (always visible) ── -->
-        <div class="modal-actions">
-          <button class="btn-save" id="btn-save">Save Settings</button>
+    <!-- ── Metrics modal ────────────────────────────── -->
+    <div class="modal-overlay" id="modal-metrics" hidden>
+      <div
+        class="modal-box modal-box--wide"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="metrics-title"
+        tabindex="-1"
+      >
+        <div class="modal-header">
+          <span class="modal-title" id="metrics-title"
+            >&#128202;&nbsp; Server Stats</span
+          >
+          <button
+            class="modal-close"
+            id="metrics-close"
+            title="Close"
+            aria-label="Close"
+          >
+            &#10005;
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="metrics-grid" id="metrics-grid">
+            <div class="metrics-loading" id="metrics-loading">Loading…</div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- ── Metrics modal ────────────────────────────── -->
-  <div class="modal-overlay" id="modal-metrics" hidden>
-    <div class="modal-box modal-box--wide" role="dialog" aria-modal="true" aria-labelledby="metrics-title" tabindex="-1">
-      <div class="modal-header">
-        <span class="modal-title" id="metrics-title">&#128202;&nbsp; Server Stats</span>
-        <button class="modal-close" id="metrics-close" title="Close" aria-label="Close">&#10005;</button>
-      </div>
-      <div class="modal-body">
-        <div class="metrics-grid" id="metrics-grid">
-          <div class="metrics-loading" id="metrics-loading">Loading…</div>
+    <div class="modal-overlay" id="modal-repair" hidden>
+      <div
+        class="modal-box"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="repair-title"
+        tabindex="-1"
+      >
+        <div class="modal-header">
+          <span class="modal-title" id="repair-title" data-i18n="repairRequired"
+            >Repair required</span
+          ><button class="modal-close" data-close="repair" aria-label="Close">
+            &#10005;
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="preflight-list" id="preflight-list"></div>
+          <progress
+            class="install-progress"
+            id="install-progress"
+            max="100"
+            value="0"
+            hidden
+          ></progress>
+          <div
+            class="install-status"
+            id="repair-status"
+            role="status"
+            aria-live="polite"
+          ></div>
+          <div class="modal-actions">
+            <button
+              class="btn-browse"
+              id="btn-cancel-repair"
+              hidden
+              data-i18n="cancel"
+            >
+              Cancel</button
+            ><button
+              class="btn-save"
+              id="btn-confirm-repair"
+              data-i18n="repairAndPlay"
+            >
+              Repair &amp; Play
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="modal-overlay" id="modal-repair" hidden>
-    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="repair-title" tabindex="-1">
-      <div class="modal-header"><span class="modal-title" id="repair-title" data-i18n="repairRequired">Repair required</span><button class="modal-close" data-close="repair" aria-label="Close">&#10005;</button></div>
-      <div class="modal-body">
-        <div class="preflight-list" id="preflight-list"></div>
-        <progress class="install-progress" id="install-progress" max="100" value="0" hidden></progress>
-        <div class="install-status" id="repair-status" role="status" aria-live="polite"></div>
-        <div class="modal-actions"><button class="btn-browse" id="btn-open-vortex" hidden>Open Vortex</button><button class="btn-browse" id="btn-cancel-repair" hidden data-i18n="cancel">Cancel</button><button class="btn-save" id="btn-confirm-repair" data-i18n="repairAndPlay">Repair &amp; Play</button></div>
+    <div class="modal-overlay" id="modal-onboarding" hidden>
+      <div
+        class="modal-box modal-box--wide"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-title"
+        tabindex="-1"
+      >
+        <div class="modal-header">
+          <span class="modal-title" id="onboarding-title" data-i18n="welcome"
+            >Welcome to Frostfall Launcher</span
+          >
+        </div>
+        <div class="modal-body onboarding-body">
+          <p class="onboarding-intro" data-i18n="setupIntro">
+            Let's prepare Skyrim, the managed MO2 modpack and your server
+            connection.
+          </p>
+          <div class="onboarding-field">
+            <label
+              class="setting-label"
+              for="onboarding-locale"
+              data-i18n="language"
+              >Language</label
+            >
+            <select class="setting-input" id="onboarding-locale">
+              <option value="en">English</option>
+              <option value="de">Deutsch</option>
+            </select>
+          </div>
+          <div class="onboarding-actions">
+            <button
+              class="btn-browse"
+              id="btn-auto-skyrim"
+              data-i18n="detectSkyrim"
+            >
+              Detect Skyrim</button
+            ><button class="btn-browse" id="btn-onboarding-modpack">
+              Choose modpack location
+            </button>
+          </div>
+          <div class="onboarding-field">
+            <label class="setting-label" for="onboarding-server">Server</label>
+            <select class="setting-input" id="onboarding-server"></select>
+          </div>
+          <div class="onboarding-actions">
+            <button
+              class="btn-browse"
+              id="btn-onboarding-login"
+              data-i18n="login"
+            >
+              Discord Login</button
+            ><button class="btn-browse" id="btn-onboarding-check">
+              Check readiness
+            </button>
+          </div>
+          <div class="preflight-list" id="onboarding-preflight"></div>
+          <div
+            class="install-status"
+            id="onboarding-status"
+            role="status"
+            aria-live="polite"
+          ></div>
+          <div class="modal-actions">
+            <button
+              class="btn-browse"
+              id="btn-skip-onboarding"
+              data-i18n="skip"
+            >
+              Skip</button
+            ><button
+              class="btn-save"
+              id="btn-finish-onboarding"
+              data-i18n="finishSetup"
+            >
+              Finish setup
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="modal-overlay" id="modal-onboarding" hidden>
-    <div class="modal-box modal-box--wide" role="dialog" aria-modal="true" aria-labelledby="onboarding-title" tabindex="-1">
-      <div class="modal-header"><span class="modal-title" id="onboarding-title" data-i18n="welcome">Welcome to Frostfall Launcher</span></div>
-      <div class="modal-body onboarding-body">
-        <p class="onboarding-intro" data-i18n="setupIntro">Let's prepare Skyrim, Vortex and your server connection.</p>
-        <div class="onboarding-field">
-          <label class="setting-label" for="onboarding-locale" data-i18n="language">Language</label>
-          <select class="setting-input" id="onboarding-locale"><option value="en">English</option><option value="de">Deutsch</option></select>
-        </div>
-        <div class="onboarding-actions"><button class="btn-browse" id="btn-auto-skyrim" data-i18n="detectSkyrim">Detect Skyrim</button><button class="btn-browse" id="btn-auto-vortex" data-i18n="detectVortex">Detect Vortex</button></div>
-        <div class="onboarding-field">
-          <label class="setting-label" for="onboarding-server">Server</label>
-          <select class="setting-input" id="onboarding-server"></select>
-        </div>
-        <div class="onboarding-actions"><button class="btn-browse" id="btn-onboarding-login" data-i18n="login">Discord Login</button><button class="btn-browse" id="btn-onboarding-check">Check readiness</button></div>
-        <div class="preflight-list" id="onboarding-preflight"></div>
-        <div class="install-status" id="onboarding-status" role="status" aria-live="polite"></div>
-        <div class="modal-actions"><button class="btn-browse" id="btn-skip-onboarding" data-i18n="skip">Skip</button><button class="btn-save" id="btn-finish-onboarding" data-i18n="finishSetup">Finish setup</button></div>
-      </div>
-    </div>
-  </div>
+    <div
+      class="sr-status"
+      id="global-status"
+      role="status"
+      aria-live="polite"
+    ></div>
 
-  <div class="sr-status" id="global-status" role="status" aria-live="polite"></div>
-
-  <script src="renderer.js"></script>
-</body>
+    <script src="renderer.js"></script>
+  </body>
 </html>

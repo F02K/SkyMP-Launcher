@@ -4,9 +4,33 @@ export type AfterLaunch = "keep" | "minimize" | "close";
 
 export interface Server {
   key: string;
+  contract: "directory-managed";
   name: string;
   address: string;
   port: number;
+  backendUrl?: string;
+  description: string;
+  region: string;
+  tags: string[];
+  versions: Record<string, string>;
+  visibility: "public" | "private";
+  status: { state: string; online: number; maxPlayers: number };
+  lastHeartbeatAt: number;
+  source: "directory" | "private";
+  stale: boolean;
+  listed: boolean;
+  access?: {
+    discordGuild?: { required: boolean; guildId?: string; inviteUrl?: string };
+  };
+}
+
+export interface BackendCapabilities {
+  authentication: "directory-discord";
+  news: boolean;
+  mods: boolean;
+  metrics: boolean;
+  clientDistribution: boolean;
+  modpack: boolean;
 }
 
 export interface DiscordUser {
@@ -19,9 +43,11 @@ export interface PublicSettings {
   skyrimPath: string;
   activeServerKey: string;
   servers: Server[];
+  favoriteServerKeys: string[];
+  directoryStatus: "live" | "empty" | "stale" | "unavailable";
+  directoryError: string;
   discordUser: DiscordUser | null;
-  vortexPath: string;
-  vortexEnabled: boolean;
+  modpackPath: string;
   locale: Locale;
   onboardingVersion: number;
   launchAtLogin: boolean;
@@ -35,6 +61,9 @@ export type InstallPhase =
   | "preflight"
   | "awaiting-confirmation"
   | "downloading"
+  | "authenticating"
+  | "installing-modpack"
+  | "manual-download"
   | "verifying"
   | "staging"
   | "committing"
@@ -68,6 +97,39 @@ export interface ClientManifest {
   signature: { algorithm: "ed25519"; value: string };
 }
 
+export interface ModpackManifest {
+  schemaVersion: 1;
+  serverKey: string;
+  version: string;
+  steam: {
+    appId: 489830;
+    executable: "SkyrimSE.exe";
+    version: string;
+    sha256: string;
+  };
+  archive: { size: number; sha256: string; etag?: string };
+  requiredFreeBytes: number;
+  profile: "Frostfall";
+  executable: "SKSE";
+  stockGame: true;
+  signature: { algorithm: "ed25519"; value: string };
+}
+
+export interface NexusStatus {
+  authenticated: boolean;
+  premium: boolean;
+  user?: string;
+}
+
+export interface ModpackStatus {
+  configured: boolean;
+  installed: boolean;
+  currentVersion?: string;
+  availableVersion?: string;
+  root: string;
+  nexus?: NexusStatus;
+}
+
 export interface PreflightCheck {
   id: string;
   status: "ok" | "warning" | "error" | "repairable";
@@ -88,6 +150,7 @@ export interface AppConfig {
   branding: { emblem: string; tagline: string; background: string };
   updates: { provider: string };
   behavior: { defaultLocale: Locale };
+  modpack: { enabled: boolean; wabbajackVersion: string };
 }
 
 export interface ElectronApi {
@@ -95,10 +158,13 @@ export interface ElectronApi {
   loadSettings(): Promise<PublicSettings>;
   saveSettings(data: Partial<PublicSettings>): Promise<PublicSettings>;
   selectServer(key: string): Promise<PublicSettings>;
-  openFolder(kind?: "skyrim" | "vortex"): Promise<string | null>;
+  toggleFavorite(key: string): Promise<PublicSettings>;
+  showServerBrowser(): Promise<PublicSettings>;
+  openFolder(kind?: "skyrim" | "modpack"): Promise<string | null>;
   detectSkyrim(): Promise<{ found: boolean; path: string }>;
-  vortexDetect(): Promise<{ found: boolean; path: string }>;
-  vortexSync(): Promise<{ success: boolean; error?: string }>;
+  modpackStatus(): Promise<ModpackStatus>;
+  nexusLogin(): Promise<NexusStatus>;
+  selectModpackLocation(): Promise<PublicSettings>;
   fetchDashboard(): Promise<any>;
   discordLogin(): Promise<any>;
   discordLogout(): Promise<void>;
@@ -110,6 +176,8 @@ export interface ElectronApi {
     needsRepair?: boolean;
     preflight?: PreflightReport;
     error?: string;
+    errorCode?: string;
+    inviteUrl?: string;
   }>;
   exportDiagnostics(): Promise<{ success: boolean; path?: string }>;
   openExternal(url: string): Promise<boolean>;

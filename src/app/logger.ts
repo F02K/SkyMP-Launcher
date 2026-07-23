@@ -2,7 +2,7 @@ import log from "electron-log/main.js";
 import fs from "node:fs";
 
 const SECRET_PATTERNS = [
-  /(x-session|authorization|apikey)(["'\s:=]+)([^\s,"'}]+)/gi,
+  /(authorization|apikey)(["'\s:=]+)([^\s,"'}]+)/gi,
   /("?(?:session|token|apiKey)"?\s*:\s*")[^"]+/gi,
 ];
 

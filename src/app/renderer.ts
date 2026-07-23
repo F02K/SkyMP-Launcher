@@ -28,9 +28,9 @@ const translations = {
     cancel: "Cancel",
     repairAndPlay: "Repair & Play",
     welcome: "Welcome to Frostfall Launcher",
-    setupIntro: "Let's prepare Skyrim, Vortex and your server connection.",
+    setupIntro:
+      "Let's prepare Skyrim, the managed MO2 modpack and your server connection.",
     detectSkyrim: "Detect Skyrim",
-    detectVortex: "Detect Vortex",
     skip: "Skip",
     finishSetup: "Finish setup",
     login: "Discord Login",
@@ -57,6 +57,23 @@ const translations = {
     diagnosticsSaved: "Diagnostics exported.",
     download: "Download",
     close: "Close",
+    directoryEyebrow: "SKYMP DIRECTORY",
+    serverBrowserTitle: "Find a server",
+    serverBrowserIntro:
+      "Choose a verified server or open one of your favorites.",
+    refresh: "Refresh",
+    serverSearchPlaceholder: "Search by name, region or tag…",
+    favoritesOnly: "Favorites only",
+    onlineOnly: "Online only",
+    switchServer: "← Switch server",
+    toggleFavorite: "Toggle favorite",
+    joinDiscord: "Join Discord server",
+    directoryUnavailable: "SkyMP Directory is unavailable. Try again.",
+    directoryStale:
+      "Directory unavailable — known favorites are shown stale and offline.",
+    emptyCatalog: "No public SkyMP servers are registered yet.",
+    noFilterResults: "No servers match these filters.",
+    notListed: "No longer listed",
   },
   de: {
     website: "WEBSEITE",
@@ -78,9 +95,9 @@ const translations = {
     cancel: "Abbrechen",
     repairAndPlay: "Reparieren & spielen",
     welcome: "Willkommen beim Frostfall Launcher",
-    setupIntro: "Wir richten Skyrim, Vortex und die Serververbindung ein.",
+    setupIntro:
+      "Wir richten Skyrim, das verwaltete MO2-Modpack und die Serververbindung ein.",
     detectSkyrim: "Skyrim erkennen",
-    detectVortex: "Vortex erkennen",
     skip: "Überspringen",
     finishSetup: "Einrichtung abschließen",
     login: "Discord-Anmeldung",
@@ -107,6 +124,24 @@ const translations = {
     noMods: "Keine Mod-Informationen verfügbar.",
     diagnosticsSaved: "Diagnose wurde exportiert.",
     download: "Download",
+    directoryEyebrow: "SKYMP-VERZEICHNIS",
+    serverBrowserTitle: "Server finden",
+    serverBrowserIntro:
+      "Wähle einen verifizierten Server oder öffne einen deiner Favoriten.",
+    refresh: "Aktualisieren",
+    serverSearchPlaceholder: "Nach Name, Region oder Tag suchen…",
+    favoritesOnly: "Nur Favoriten",
+    onlineOnly: "Nur online",
+    switchServer: "← Server wechseln",
+    toggleFavorite: "Favorit umschalten",
+    joinDiscord: "Discord-Server beitreten",
+    directoryUnavailable:
+      "Die SkyMP Directory ist nicht erreichbar. Erneut versuchen.",
+    directoryStale:
+      "Directory nicht erreichbar – bekannte Favoriten werden veraltet und offline angezeigt.",
+    emptyCatalog: "Noch keine öffentlichen SkyMP-Server registriert.",
+    noFilterResults: "Keine Server entsprechen den Filtern.",
+    notListed: "Nicht mehr gelistet",
     close: "Schließen",
   },
 } as const;
@@ -116,6 +151,7 @@ let appConfig: AppConfig;
 let settings: PublicSettings;
 let dashboard: any = null;
 let latestNewsUrl = "";
+let pendingGuildInviteUrl = "";
 let previousFocus: HTMLElement | null = null;
 
 function t(key: keyof typeof translations.en): string {
@@ -134,6 +170,11 @@ function applyLocale() {
     t("latestNews");
   document.querySelector(".modlist-section .section-title")!.textContent =
     t("modlist");
+  const search = $<HTMLInputElement>("server-search");
+  search.placeholder = t("serverSearchPlaceholder");
+  search.setAttribute("aria-label", t("serverSearchPlaceholder"));
+  $("btn-active-favorite").setAttribute("aria-label", t("toggleFavorite"));
+  if (settings) renderServerBrowser();
 }
 
 function openModal(id: string) {
@@ -188,8 +229,7 @@ function populateSettings(value: PublicSettings) {
   settings = value;
   locale = value.locale;
   $<HTMLInputElement>("setting-skyrim-path").value = value.skyrimPath;
-  $<HTMLInputElement>("setting-vortex-path").value = value.vortexPath;
-  $<HTMLInputElement>("setting-vortex-enabled").checked = value.vortexEnabled;
+  $<HTMLInputElement>("setting-modpack-path").value = value.modpackPath;
   $<HTMLSelectElement>("setting-locale").value = value.locale;
   $<HTMLSelectElement>("onboarding-locale").value = value.locale;
   $<HTMLInputElement>("setting-launch-at-login").checked = value.launchAtLogin;
@@ -207,8 +247,8 @@ function populateSettings(value: PublicSettings) {
       return option;
     }),
   );
-  select.hidden = value.servers.length <= 1;
-  $("footer-server-name").hidden = value.servers.length > 1;
+  select.hidden = true;
+  $("footer-server-name").hidden = false;
   $("footer-server-name").textContent =
     value.servers.find((server) => server.key === value.activeServerKey)
       ?.name || "—";
@@ -224,6 +264,118 @@ function populateSettings(value: PublicSettings) {
   );
   renderDiscord();
   applyLocale();
+  renderServerBrowser();
+}
+
+function isFavorite(key: string) {
+  return settings.favoriteServerKeys.includes(key);
+}
+
+function renderServerBrowser() {
+  if (!settings) return;
+  const browser = $("server-browser");
+  const hasSelection = Boolean(settings.activeServerKey);
+  browser.hidden = hasSelection;
+  document.querySelector<HTMLElement>(".main-header")!.hidden = !hasSelection;
+  document.querySelector<HTMLElement>(".content-layout")!.hidden =
+    !hasSelection;
+  $("server-info-strip").hidden = !hasSelection;
+  $("btn-connect").hidden = !hasSelection;
+  if (hasSelection) return;
+  const query = $<HTMLInputElement>("server-search")
+    .value.trim()
+    .toLocaleLowerCase();
+  const favoritesOnly = $<HTMLInputElement>("server-filter-favorites").checked;
+  const onlineOnly = $<HTMLInputElement>("server-filter-online").checked;
+  const servers = [...settings.servers]
+    .filter(
+      (server) =>
+        !query ||
+        `${server.name} ${server.description} ${server.region} ${server.tags.join(" ")}`
+          .toLocaleLowerCase()
+          .includes(query),
+    )
+    .filter((server) => !favoritesOnly || isFavorite(server.key))
+    .filter((server) => !onlineOnly || server.status.state === "online")
+    .sort(
+      (a, b) =>
+        Number(isFavorite(b.key)) - Number(isFavorite(a.key)) ||
+        Number(b.status.state === "online") -
+          Number(a.status.state === "online") ||
+        b.status.online - a.status.online ||
+        a.name.localeCompare(b.name),
+    );
+  const state = $("server-browser-state");
+  state.dataset.status = settings.directoryStatus;
+  if (settings.directoryStatus === "unavailable")
+    state.textContent = t("directoryUnavailable");
+  else if (settings.directoryStatus === "stale")
+    state.textContent = t("directoryStale");
+  else if (!settings.servers.length) state.textContent = t("emptyCatalog");
+  else if (!servers.length) state.textContent = t("noFilterResults");
+  else
+    state.textContent = `${servers.length} ${
+      locale === "de" ? "Server" : servers.length === 1 ? "server" : "servers"
+    }`;
+  const grid = $("server-grid");
+  grid.replaceChildren();
+  for (const server of servers) {
+    const card = document.createElement("article");
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.setAttribute("aria-label", `${server.name}, ${server.status.state}`);
+    card.className = `server-card server-card--${server.status.state}${server.stale || !server.listed ? " server-card--stale" : ""}`;
+    const title = document.createElement("h2");
+    title.className = "server-card-title";
+    title.textContent = server.name;
+    const favorite = document.createElement("button");
+    favorite.className = "server-favorite-button";
+    favorite.textContent = isFavorite(server.key) ? "★" : "☆";
+    favorite.setAttribute("aria-label", t("toggleFavorite"));
+    favorite.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      populateSettings(await window.electronAPI.toggleFavorite(server.key));
+    });
+    const description = document.createElement("div");
+    description.className = "server-card-description";
+    description.textContent =
+      server.description || (server.listed ? "" : t("notListed"));
+    const meta = document.createElement("div");
+    meta.className = "server-card-meta";
+    const statusChip = document.createElement("span");
+    statusChip.className = `server-chip server-chip--status server-chip--${server.status.state}`;
+    statusChip.textContent =
+      server.status.state === "online"
+        ? `${server.status.online}/${server.status.maxPlayers} online`
+        : server.status.state;
+    meta.append(statusChip);
+    for (const label of [
+      server.region,
+      ...server.tags.slice(0, 3),
+      ...Object.entries(server.versions || {})
+        .slice(0, 1)
+        .map(([key, value]) => `${key} ${value}`),
+    ]) {
+      if (!label) continue;
+      const chip = document.createElement("span");
+      chip.className = "server-chip";
+      chip.textContent = label;
+      meta.append(chip);
+    }
+    card.append(title, favorite, description, meta);
+    card.addEventListener("click", async () => {
+      populateSettings(await window.electronAPI.selectServer(server.key));
+      await refreshModpackStatus();
+      await refreshDashboard();
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        card.click();
+      }
+    });
+    grid.append(card);
+  }
 }
 
 function renderDiscord() {
@@ -269,6 +421,16 @@ function renderDiscord() {
     });
     slot.append(button);
   }
+}
+
+async function refreshModpackStatus() {
+  const status = await window.electronAPI.modpackStatus();
+  $<HTMLInputElement>("setting-modpack-path").value = status.root;
+  $("modpack-status-text").textContent = !status.configured
+    ? "Not configured in this launcher build"
+    : status.installed
+      ? `Installed ${status.currentVersion || ""}${status.nexus?.premium ? " · Nexus Premium" : ""}`
+      : "Not installed";
 }
 
 function renderNews(items: any[]) {
@@ -401,14 +563,58 @@ function renderMetrics(value: any) {
 }
 
 async function refreshDashboard() {
+  if (!settings.activeServerKey) {
+    dashboard = null;
+    renderServerBrowser();
+    return;
+  }
   $("badge-label").textContent = t("checking");
   dashboard = await window.electronAPI.fetchDashboard();
-  const online = dashboard?.status?.status === "online";
+  const online =
+    (dashboard?.status?.status ||
+      dashboard?.status?.state ||
+      dashboard?.server?.status?.state) === "online";
   $("badge-status").classList.toggle("online", online);
   $("badge-label").textContent = online ? t("online") : t("offline");
   const players = $("badge-players");
-  players.hidden = dashboard?.status?.players == null;
-  players.textContent = `${dashboard?.status?.players || 0} PLAYERS`;
+  const onlinePlayers =
+    dashboard?.status?.players ??
+    dashboard?.status?.online ??
+    dashboard?.server?.status?.online;
+  players.hidden = onlinePlayers == null;
+  players.textContent = `${onlinePlayers || 0} PLAYERS`;
+  const server = dashboard?.server;
+  if (server) {
+    $("overview-server-name").textContent = server.name;
+    $("overview-server-description").textContent = server.description || "";
+    $("btn-active-favorite").textContent = isFavorite(server.key) ? "★" : "☆";
+    const meta = $("overview-server-meta");
+    meta.replaceChildren();
+    for (const label of [
+      server.region,
+      ...server.tags,
+      ...Object.entries(server.versions || {}).map(
+        ([key, value]) => `${key} ${value}`,
+      ),
+    ]) {
+      if (!label) continue;
+      const chip = document.createElement("span");
+      chip.className = "server-chip";
+      chip.textContent = String(label);
+      meta.append(chip);
+    }
+    $("server-access-message").textContent = !server.listed
+      ? locale === "de"
+        ? "Dieser Favorit ist nicht mehr gelistet und kann nicht gestartet werden."
+        : "This favorite is no longer listed and cannot be started."
+      : server.stale
+        ? locale === "de"
+          ? "Veralteter Directory-Cache – Serverstatus unbekannt."
+          : "Stale Directory cache — server status unknown."
+        : dashboard?.info?.access?.allowed
+          ? ""
+          : dashboard?.info?.access?.reason || "";
+  }
   if (dashboard?.info) {
     $("server-info-strip").hidden = false;
     $("sinfo-name").textContent = dashboard.info.name || dashboard.server.name;
@@ -426,6 +632,10 @@ async function refreshDashboard() {
   renderNews(dashboard?.news || []);
   renderMods(dashboard?.mods || []);
   renderMetrics(dashboard?.metrics);
+  $("news-section").hidden = !dashboard?.capabilities?.news;
+  $("modlist-section").hidden = !dashboard?.capabilities?.mods;
+  $("btn-stats").hidden = !dashboard?.capabilities?.metrics;
+  renderServerBrowser();
 }
 
 function showPreflight(report: PreflightReport) {
@@ -439,9 +649,6 @@ function showPreflight(report: PreflightReport) {
     }),
   );
   const confirm = $<HTMLButtonElement>("btn-confirm-repair");
-  $("btn-open-vortex").hidden = !report.checks.some(
-    (check) => check.id === "mods" && check.status === "error",
-  );
   confirm.disabled = !report.repairable;
   confirm.textContent = report.repairable
     ? `${t("repairAndPlay")} (${(report.downloadBytes / 1024 / 1024).toFixed(1)} MB)`
@@ -452,8 +659,6 @@ function showPreflight(report: PreflightReport) {
 async function saveSettings(onboardingVersion = settings.onboardingVersion) {
   const value = await window.electronAPI.saveSettings({
     skyrimPath: $<HTMLInputElement>("setting-skyrim-path").value.trim(),
-    vortexPath: $<HTMLInputElement>("setting-vortex-path").value.trim(),
-    vortexEnabled: $<HTMLInputElement>("setting-vortex-enabled").checked,
     locale: $<HTMLSelectElement>("setting-locale").value as "en" | "de",
     onboardingVersion,
     launchAtLogin: $<HTMLInputElement>("setting-launch-at-login").checked,
@@ -481,6 +686,7 @@ async function initialize() {
   });
   settings = await window.electronAPI.loadSettings();
   populateSettings(settings);
+  await refreshModpackStatus();
   if (settings.onboardingVersion < 2) openModal("modal-onboarding");
   await refreshDashboard();
   const update = await window.electronAPI.getUpdateState();
@@ -496,6 +702,34 @@ $("btn-maximize").addEventListener("click", () =>
 );
 $("btn-close").addEventListener("click", () => window.electronAPI.close());
 $("btn-gear").addEventListener("click", () => openModal("modal-settings"));
+$<HTMLInputElement>("server-search").addEventListener(
+  "input",
+  renderServerBrowser,
+);
+$<HTMLInputElement>("server-filter-favorites").addEventListener(
+  "change",
+  renderServerBrowser,
+);
+$<HTMLInputElement>("server-filter-online").addEventListener(
+  "change",
+  renderServerBrowser,
+);
+$("btn-directory-retry").addEventListener("click", async () =>
+  populateSettings(await window.electronAPI.loadSettings()),
+);
+$("btn-switch-server").addEventListener("click", async () =>
+  populateSettings(await window.electronAPI.showServerBrowser()),
+);
+$("btn-active-favorite").addEventListener("click", async () => {
+  if (settings.activeServerKey)
+    populateSettings(
+      await window.electronAPI.toggleFavorite(settings.activeServerKey),
+    );
+});
+$("btn-guild-invite").addEventListener("click", () => {
+  if (pendingGuildInviteUrl)
+    void window.electronAPI.openExternal(pendingGuildInviteUrl);
+});
 $("modal-close").addEventListener("click", () => closeModal("modal-settings"));
 $("btn-stats").addEventListener("click", () => {
   renderMetrics(dashboard?.metrics);
@@ -530,14 +764,16 @@ $("btn-browse").addEventListener("click", async () => {
   const value = await window.electronAPI.openFolder("skyrim");
   if (value) $<HTMLInputElement>("setting-skyrim-path").value = value;
 });
-$("btn-browse-vortex").addEventListener("click", async () => {
-  const value = await window.electronAPI.openFolder("vortex");
-  if (value) $<HTMLInputElement>("setting-vortex-path").value = value;
+$("btn-select-modpack-location").addEventListener("click", async () => {
+  populateSettings(await window.electronAPI.selectModpackLocation());
+  await refreshModpackStatus();
 });
-$("btn-detect-vortex").addEventListener("click", async () => {
-  const value = await window.electronAPI.vortexDetect();
-  if (value.found)
-    $<HTMLInputElement>("setting-vortex-path").value = value.path;
+$("btn-nexus-login").addEventListener("click", async () => {
+  const status = await window.electronAPI.nexusLogin();
+  $("install-status-modpack").textContent = status.premium
+    ? "Nexus Premium connected — downloads are automatic."
+    : "Nexus connected — guided Slow Download queue will be used.";
+  await refreshModpackStatus();
 });
 $("btn-save").addEventListener("click", async () => {
   await saveSettings();
@@ -570,13 +806,9 @@ $("btn-auto-skyrim").addEventListener("click", async () => {
     $("onboarding-status").textContent = value.path;
   } else $("onboarding-status").textContent = "Skyrim was not detected.";
 });
-$("btn-auto-vortex").addEventListener("click", async () => {
-  const value = await window.electronAPI.vortexDetect();
-  if (value.found) {
-    $<HTMLInputElement>("setting-vortex-path").value = value.path;
-    $<HTMLInputElement>("setting-vortex-enabled").checked = true;
-    $("onboarding-status").textContent = value.path;
-  } else $("onboarding-status").textContent = "Vortex was not detected.";
+$("btn-onboarding-modpack").addEventListener("click", async () => {
+  populateSettings(await window.electronAPI.selectModpackLocation());
+  $("onboarding-status").textContent = settings.modpackPath;
 });
 $<HTMLSelectElement>("onboarding-server").addEventListener(
   "change",
@@ -586,6 +818,7 @@ $<HTMLSelectElement>("onboarding-server").addEventListener(
         (event.target as HTMLSelectElement).value,
       ),
     );
+    await refreshModpackStatus();
     await refreshDashboard();
   },
 );
@@ -633,6 +866,7 @@ $<HTMLSelectElement>("footer-server-select").addEventListener(
         (event.target as HTMLSelectElement).value,
       ),
     );
+    await refreshModpackStatus();
     await refreshDashboard();
   },
 );
@@ -647,6 +881,17 @@ $("btn-connect").addEventListener("click", async () => {
   else if (!result.success) {
     $("connect-warning").textContent = result.error || "";
     $("connect-warning").classList.add("visible");
+    pendingGuildInviteUrl =
+      result.errorCode === "guildMembershipRequired"
+        ? result.inviteUrl || ""
+        : "";
+    $("btn-guild-invite").hidden = !pendingGuildInviteUrl;
+    $("server-access-message").textContent =
+      result.errorCode === "guildMembershipRequired"
+        ? locale === "de"
+          ? "Mitgliedschaft im Discord-Server erforderlich. Tritt bei und klicke danach erneut auf Spielen."
+          : "Discord server membership is required. Join it, then click Play again."
+        : result.error || "";
   }
 });
 $("btn-confirm-repair").addEventListener("click", async () => {
@@ -666,18 +911,11 @@ $("btn-cancel-repair").addEventListener(
   "click",
   () => void window.electronAPI.cancelInstall(),
 );
-$("btn-open-vortex").addEventListener("click", async () => {
-  const result = await window.electronAPI.vortexSync();
-  $("repair-status").textContent = result.success
-    ? "Vortex opened. Complete deployment, then check again."
-    : result.error || "Vortex could not be opened.";
-  if (result.success) showPreflight(await window.electronAPI.preflight());
-});
 $("btn-install-client").addEventListener("click", async () => {
   const report = await window.electronAPI.preflight();
   showPreflight(report);
 });
-$("btn-install-vortex").addEventListener("click", async () => {
+$("btn-install-modpack").addEventListener("click", async () => {
   const report = await window.electronAPI.preflight();
   showPreflight(report);
 });
